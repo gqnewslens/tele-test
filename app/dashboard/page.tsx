@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 
 interface Post {
+  id: number;
   timestamp: string;
   channel: string;
   messageId: string;
@@ -22,6 +23,41 @@ export default function Dashboard() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Admin state
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showLoginModal, setShowLoginModal] = useState(false);
+  const [password, setPassword] = useState('');
+  const [loginError, setLoginError] = useState('');
+  const [adminToken, setAdminToken] = useState<string | null>(null);
+
+  // Delete state
+  const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
+  const [deleting, setDeleting] = useState<number | null>(null);
+
+  // Check for existing token on mount
+  useEffect(() => {
+    const savedToken = localStorage.getItem('adminToken');
+    if (savedToken) {
+      verifyToken(savedToken);
+    }
+  }, []);
+
+  const verifyToken = async (token: string) => {
+    try {
+      const res = await fetch('/api/admin/auth', {
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setIsAdmin(true);
+        setAdminToken(token);
+      } else {
+        localStorage.removeItem('adminToken');
+      }
+    } catch {
+      localStorage.removeItem('adminToken');
+    }
+  };
 
   useEffect(() => {
     fetchPosts();
@@ -117,6 +153,74 @@ export default function Dashboard() {
     { type: 'video', label: '영상', icon: '🎬' },
   ];
 
+  // Admin login handler
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoginError('');
+
+    try {
+      const res = await fetch('/api/admin/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        setIsAdmin(true);
+        setAdminToken(data.token);
+        localStorage.setItem('adminToken', data.token);
+        setShowLoginModal(false);
+        setPassword('');
+      } else {
+        setLoginError(data.error || '로그인 실패');
+      }
+    } catch {
+      setLoginError('서버 오류가 발생했습니다');
+    }
+  };
+
+  // Admin logout handler
+  const handleLogout = async () => {
+    if (adminToken) {
+      await fetch('/api/admin/auth', {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+    }
+    setIsAdmin(false);
+    setAdminToken(null);
+    localStorage.removeItem('adminToken');
+  };
+
+  // Delete handler
+  const handleDelete = async (postId: number) => {
+    if (!adminToken) return;
+
+    setDeleting(postId);
+    try {
+      const res = await fetch(`/api/dashboard/posts/${postId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        // Remove from local state
+        setPosts(prev => prev.filter(p => p.id !== postId));
+        setDeleteConfirm(null);
+      } else {
+        alert(`삭제 실패: ${data.error || data.message}`);
+      }
+    } catch {
+      alert('삭제 중 오류가 발생했습니다');
+    } finally {
+      setDeleting(null);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -129,7 +233,26 @@ export default function Dashboard() {
     <div className="min-h-screen bg-gray-900 text-white">
       <header className="bg-gray-800 border-b border-gray-700 sticky top-0 z-10">
         <div className="max-w-6xl mx-auto px-4 py-4">
-          <h1 className="text-2xl font-bold mb-4">Telegram Dashboard</h1>
+          <div className="flex justify-between items-center mb-4">
+            <h1 className="text-2xl font-bold">Telegram Dashboard</h1>
+
+            {/* Admin button */}
+            {isAdmin ? (
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
+              >
+                🔓 로그아웃
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowLoginModal(true)}
+                className="px-4 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors flex items-center gap-2"
+              >
+                🔐 관리자
+              </button>
+            )}
+          </div>
 
           <div className="flex flex-wrap gap-2">
             {filterButtons.map(btn => (
@@ -153,6 +276,12 @@ export default function Dashboard() {
         {error && (
           <div className="bg-red-900/50 border border-red-700 rounded-lg p-4 mb-6">
             {error}
+          </div>
+        )}
+
+        {isAdmin && (
+          <div className="bg-green-900/30 border border-green-700 rounded-lg p-3 mb-6 flex items-center gap-2">
+            ✅ 관리자 모드 - 삭제 기능이 활성화되었습니다
           </div>
         )}
 
@@ -225,6 +354,35 @@ export default function Dashboard() {
                         💬 원본 보기
                       </a>
                     )}
+
+                    {/* Delete button - only visible for admin */}
+                    {isAdmin && (
+                      deleteConfirm === post.id ? (
+                        <div className="flex items-center gap-2">
+                          <button
+                            onClick={() => handleDelete(post.id)}
+                            disabled={deleting === post.id}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-red-600 text-white rounded-full text-sm hover:bg-red-700 transition-colors disabled:opacity-50"
+                          >
+                            {deleting === post.id ? '삭제 중...' : '✓ 확인'}
+                          </button>
+                          <button
+                            onClick={() => setDeleteConfirm(null)}
+                            disabled={deleting === post.id}
+                            className="inline-flex items-center gap-1 px-3 py-1 bg-gray-600 text-white rounded-full text-sm hover:bg-gray-500 transition-colors disabled:opacity-50"
+                          >
+                            ✕ 취소
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setDeleteConfirm(post.id)}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-red-900/50 text-red-400 rounded-full text-sm hover:bg-red-900 transition-colors"
+                        >
+                          🗑️ 삭제
+                        </button>
+                      )
+                    )}
                   </div>
                 </div>
               </div>
@@ -238,6 +396,55 @@ export default function Dashboard() {
           )}
         </div>
       </main>
+
+      {/* Login Modal */}
+      {showLoginModal && (
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-gray-800 rounded-lg p-6 w-full max-w-md mx-4 border border-gray-700">
+            <h2 className="text-xl font-bold mb-4">관리자 로그인</h2>
+
+            <form onSubmit={handleLogin}>
+              <div className="mb-4">
+                <label className="block text-gray-400 mb-2">비밀번호</label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 bg-gray-700 border border-gray-600 rounded-lg focus:outline-none focus:border-blue-500"
+                  placeholder="관리자 비밀번호 입력"
+                  autoFocus
+                />
+              </div>
+
+              {loginError && (
+                <div className="mb-4 text-red-400 text-sm">
+                  {loginError}
+                </div>
+              )}
+
+              <div className="flex gap-3">
+                <button
+                  type="submit"
+                  className="flex-1 py-2 bg-blue-600 hover:bg-blue-700 rounded-lg transition-colors"
+                >
+                  로그인
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowLoginModal(false);
+                    setPassword('');
+                    setLoginError('');
+                  }}
+                  className="flex-1 py-2 bg-gray-700 hover:bg-gray-600 rounded-lg transition-colors"
+                >
+                  취소
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

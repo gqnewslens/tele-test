@@ -198,6 +198,48 @@ class TelegramBot {
     const arrayBuffer = await response.arrayBuffer();
     return Buffer.from(arrayBuffer);
   }
+
+  // Delete a message from a chat
+  // Note: Bot must be admin in the channel/group
+  // Messages older than 48 hours may not be deletable
+  async deleteMessage(chatId: number | string, messageId: number): Promise<boolean> {
+    try {
+      await this.bot.telegram.deleteMessage(chatId, messageId);
+      return true;
+    } catch (error) {
+      console.error('Failed to delete Telegram message:', error);
+      return false;
+    }
+  }
+
+  // Parse chat ID from Telegram link
+  // Link format: https://t.me/c/1234567890/123
+  static parseChatIdFromLink(link: string): { chatId: string; messageId: number } | null {
+    try {
+      // Private link format: https://t.me/c/CHAT_ID/MESSAGE_ID
+      const privateMatch = link.match(/t\.me\/c\/(\d+)\/(\d+)/);
+      if (privateMatch) {
+        // Private channels have -100 prefix
+        return {
+          chatId: `-100${privateMatch[1]}`,
+          messageId: parseInt(privateMatch[2], 10),
+        };
+      }
+
+      // Public link format: https://t.me/CHANNEL_NAME/MESSAGE_ID
+      const publicMatch = link.match(/t\.me\/([^/]+)\/(\d+)/);
+      if (publicMatch) {
+        return {
+          chatId: `@${publicMatch[1]}`,
+          messageId: parseInt(publicMatch[2], 10),
+        };
+      }
+
+      return null;
+    } catch {
+      return null;
+    }
+  }
 }
 
 // Singleton instance

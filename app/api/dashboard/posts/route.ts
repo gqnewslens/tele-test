@@ -8,6 +8,7 @@ export async function GET() {
 
     // Transform to match frontend interface
     const posts = data.map(row => ({
+      id: row.id,
       timestamp: row.timestamp,
       channel: row.channel,
       messageId: String(row.message_id),

@@ -61,6 +61,59 @@ class CloudinaryClient {
       uploadStream.end(fileBuffer);
     });
   }
+
+  async deleteFile(publicId: string, resourceType: 'image' | 'video' | 'raw' = 'raw'): Promise<boolean> {
+    return new Promise((resolve, reject) => {
+      cloudinary.uploader.destroy(
+        publicId,
+        { resource_type: resourceType },
+        (error, result) => {
+          if (error) {
+            reject(error);
+          } else {
+            resolve(result?.result === 'ok');
+          }
+        }
+      );
+    });
+  }
+
+  // Extract public ID from Cloudinary URL
+  static extractPublicId(url: string): { publicId: string; resourceType: 'image' | 'video' | 'raw' } | null {
+    try {
+      // URL format: https://res.cloudinary.com/{cloud_name}/{resource_type}/upload/{version}/{folder}/{public_id}.{extension}
+      const urlParts = new URL(url);
+      const pathParts = urlParts.pathname.split('/');
+
+      // Find resource type (image, video, raw)
+      const resourceTypeIndex = pathParts.indexOf('upload') - 1;
+      let resourceType: 'image' | 'video' | 'raw' = 'raw';
+      if (resourceTypeIndex >= 0) {
+        const rt = pathParts[resourceTypeIndex];
+        if (rt === 'image' || rt === 'video' || rt === 'raw') {
+          resourceType = rt;
+        }
+      }
+
+      // Get the path after "upload" and version
+      const uploadIndex = pathParts.indexOf('upload');
+      if (uploadIndex === -1) return null;
+
+      // Skip version (starts with v followed by numbers)
+      let startIndex = uploadIndex + 1;
+      if (pathParts[startIndex]?.match(/^v\d+$/)) {
+        startIndex++;
+      }
+
+      // Join remaining parts and remove extension
+      const publicIdWithExt = pathParts.slice(startIndex).join('/');
+      const publicId = publicIdWithExt.replace(/\.[^/.]+$/, '');
+
+      return { publicId, resourceType };
+    } catch {
+      return null;
+    }
+  }
 }
 
 // Singleton

@@ -90,6 +90,34 @@ class SupabaseDB {
 
     return data || [];
   }
+
+  async getPostById(id: number): Promise<TelegramPost | null> {
+    const { data, error } = await this.client
+      .from('telegram_posts')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch post: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async deletePost(id: number): Promise<void> {
+    const { error } = await this.client
+      .from('telegram_posts')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete post: ${error.message}`);
+    }
+  }
 }
 
 // Singleton instance
