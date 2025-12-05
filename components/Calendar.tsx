@@ -61,16 +61,19 @@ export default function Calendar() {
       month: 'short',
       day: 'numeric',
       weekday: 'short',
+      timeZone: 'Asia/Seoul',
     });
 
     if (event.start.dateTime) {
       const timeStr = start.toLocaleTimeString('ko-KR', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Seoul',
       });
       const endTimeStr = end?.toLocaleTimeString('ko-KR', {
         hour: '2-digit',
         minute: '2-digit',
+        timeZone: 'Asia/Seoul',
       });
 
       return `${dateStr} ${timeStr}${endTimeStr ? ` - ${endTimeStr}` : ''}`;
@@ -80,12 +83,20 @@ export default function Calendar() {
   };
 
   const isEventToday = (event: CalendarEvent) => {
-    const eventDate = new Date(event.start.dateTime || event.start.date || '');
-    const today = new Date();
+    const eventDateStr = event.start.dateTime || event.start.date || '';
+    if (!eventDateStr) return false;
+
+    // Convert event date to KST
+    const eventDate = new Date(eventDateStr);
+    const eventKST = new Date(eventDate.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+
+    // Get today's date in KST
+    const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+
     return (
-      eventDate.getDate() === today.getDate() &&
-      eventDate.getMonth() === today.getMonth() &&
-      eventDate.getFullYear() === today.getFullYear()
+      eventKST.getDate() === todayKST.getDate() &&
+      eventKST.getMonth() === todayKST.getMonth() &&
+      eventKST.getFullYear() === todayKST.getFullYear()
     );
   };
 

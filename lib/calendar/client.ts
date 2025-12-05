@@ -104,17 +104,41 @@ class GoogleCalendarClient {
   }
 
   async getUpcomingEvents(days: number = 7): Promise<calendar_v3.Schema$Event[]> {
+    // Use KST timezone for upcoming events
     const now = new Date();
-    const future = new Date();
-    future.setDate(now.getDate() + days);
+    const kstOffset = 9 * 60; // KST is UTC+9
+    const kstNow = new Date(now.getTime() + kstOffset * 60 * 1000);
 
-    return this.listEvents(now.toISOString(), future.toISOString(), 50);
+    const startOfDay = new Date(Date.UTC(
+      kstNow.getUTCFullYear(),
+      kstNow.getUTCMonth(),
+      kstNow.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    startOfDay.setHours(startOfDay.getHours() - 9); // Convert back to UTC
+
+    const future = new Date(startOfDay.getTime() + days * 24 * 60 * 60 * 1000);
+
+    return this.listEvents(startOfDay.toISOString(), future.toISOString(), 50);
   }
 
   async getTodayEvents(): Promise<calendar_v3.Schema$Event[]> {
+    // Get current time in KST (UTC+9)
     const now = new Date();
-    const startOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const endOfDay = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+    const kstOffset = 9 * 60; // KST is UTC+9
+    const kstNow = new Date(now.getTime() + kstOffset * 60 * 1000);
+
+    // Set start of day in KST
+    const startOfDay = new Date(Date.UTC(
+      kstNow.getUTCFullYear(),
+      kstNow.getUTCMonth(),
+      kstNow.getUTCDate(),
+      0, 0, 0, 0
+    ));
+    startOfDay.setHours(startOfDay.getHours() - 9); // Convert back to UTC
+
+    // Set end of day in KST
+    const endOfDay = new Date(startOfDay.getTime() + 24 * 60 * 60 * 1000);
 
     return this.listEvents(startOfDay.toISOString(), endOfDay.toISOString(), 50);
   }
