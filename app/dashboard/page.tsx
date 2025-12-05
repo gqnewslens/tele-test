@@ -266,7 +266,7 @@ export default function Dashboard() {
                     : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
                 }`}
               >
-                {btn.icon} {btn.label}
+                {btn.label}
               </button>
             ))}
           </div>
