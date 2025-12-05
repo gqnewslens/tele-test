@@ -80,10 +80,10 @@ export function getEventPosition(
   }
 
   const startTime = new Date(startStr);
-  const kstStart = getKSTDate(startTime);
+  const kstStart = new Date(startTime.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
 
-  const hours = kstStart.getUTCHours();
-  const minutes = kstStart.getUTCMinutes();
+  const hours = kstStart.getHours();
+  const minutes = kstStart.getMinutes();
 
   const startMinutes = (hours - startHour) * 60 + minutes;
   const durationMinutes = getEventDuration(event);

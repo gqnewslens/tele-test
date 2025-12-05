@@ -6,32 +6,36 @@
 // KST timezone utilities
 export function getKSTDate(date?: Date): Date {
   const d = date || new Date();
-  const kstOffset = 9 * 60; // KST is UTC+9
-  return new Date(d.getTime() + kstOffset * 60 * 1000);
+  // Convert to KST by using toLocaleString with Asia/Seoul timezone
+  const kstString = d.toLocaleString('en-US', { timeZone: 'Asia/Seoul' });
+  return new Date(kstString);
 }
 
 export function getKSTToday(): Date {
   const now = new Date();
-  const kstNow = getKSTDate(now);
-  return new Date(Date.UTC(
-    kstNow.getUTCFullYear(),
-    kstNow.getUTCMonth(),
-    kstNow.getUTCDate(),
+  const kstNow = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+
+  return new Date(
+    kstNow.getFullYear(),
+    kstNow.getMonth(),
+    kstNow.getDate(),
     0, 0, 0, 0
-  ));
+  );
 }
 
 export function getStartOfDay(date: Date, tz: 'KST' | 'UTC' = 'KST'): Date {
   if (tz === 'KST') {
-    const kstDate = getKSTDate(date);
-    const start = new Date(Date.UTC(
-      kstDate.getUTCFullYear(),
-      kstDate.getUTCMonth(),
-      kstDate.getUTCDate(),
-      0, 0, 0, 0
-    ));
-    start.setHours(start.getHours() - 9); // Convert back to UTC
-    return start;
+    const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+    const year = kstDate.getFullYear();
+    const month = kstDate.getMonth();
+    const day = kstDate.getDate();
+
+    // Create start of day in KST, then convert to UTC
+    const kstStart = new Date(year, month, day, 0, 0, 0, 0);
+    const utcStart = new Date(kstStart.toLocaleString('en-US', { timeZone: 'UTC' }));
+
+    // Adjust for timezone offset
+    return new Date(date.getTime() - (date.getTime() % (24 * 60 * 60 * 1000)) - (9 * 60 * 60 * 1000));
   } else {
     return new Date(Date.UTC(
       date.getUTCFullYear(),
@@ -49,18 +53,18 @@ export function getEndOfDay(date: Date, tz: 'KST' | 'UTC' = 'KST'): Date {
 
 // Week calculations (week starts on Sunday for Korea)
 export function getWeekStart(date: Date, startOnMonday: boolean = false): Date {
-  const kstDate = getKSTDate(date);
-  const day = kstDate.getUTCDay();
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const day = kstDate.getDay(); // 0 = Sunday, 6 = Saturday
   const diff = startOnMonday ? (day === 0 ? -6 : 1 - day) : -day;
 
-  const weekStart = new Date(Date.UTC(
-    kstDate.getUTCFullYear(),
-    kstDate.getUTCMonth(),
-    kstDate.getUTCDate() + diff,
+  const weekStartKST = new Date(
+    kstDate.getFullYear(),
+    kstDate.getMonth(),
+    kstDate.getDate() + diff,
     0, 0, 0, 0
-  ));
-  weekStart.setHours(weekStart.getHours() - 9); // Convert back to UTC
-  return weekStart;
+  );
+
+  return weekStartKST;
 }
 
 export function getWeekDays(date: Date, startOnMonday: boolean = false): Date[] {
@@ -68,20 +72,22 @@ export function getWeekDays(date: Date, startOnMonday: boolean = false): Date[] 
   const days: Date[] = [];
 
   for (let i = 0; i < 7; i++) {
-    days.push(new Date(weekStart.getTime() + i * 24 * 60 * 60 * 1000));
+    const day = new Date(weekStart);
+    day.setDate(weekStart.getDate() + i);
+    days.push(day);
   }
 
   return days;
 }
 
 export function isSameDay(date1: Date, date2: Date): boolean {
-  const kst1 = getKSTDate(date1);
-  const kst2 = getKSTDate(date2);
+  const kst1 = new Date(date1.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const kst2 = new Date(date2.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
 
   return (
-    kst1.getUTCDate() === kst2.getUTCDate() &&
-    kst1.getUTCMonth() === kst2.getUTCMonth() &&
-    kst1.getUTCFullYear() === kst2.getUTCFullYear()
+    kst1.getDate() === kst2.getDate() &&
+    kst1.getMonth() === kst2.getMonth() &&
+    kst1.getFullYear() === kst2.getFullYear()
   );
 }
 
@@ -93,15 +99,8 @@ export function isSameWeek(date1: Date, date2: Date): boolean {
 
 // Month calculations
 export function getMonthStart(date: Date): Date {
-  const kstDate = getKSTDate(date);
-  const monthStart = new Date(Date.UTC(
-    kstDate.getUTCFullYear(),
-    kstDate.getUTCMonth(),
-    1,
-    0, 0, 0, 0
-  ));
-  monthStart.setHours(monthStart.getHours() - 9); // Convert back to UTC
-  return monthStart;
+  const kstDate = new Date(date.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  return new Date(kstDate.getFullYear(), kstDate.getMonth(), 1, 0, 0, 0, 0);
 }
 
 export function getDaysInMonth(year: number, month: number): number {
@@ -109,14 +108,12 @@ export function getDaysInMonth(year: number, month: number): number {
 }
 
 export function getCalendarWeeks(year: number, month: number): Date[][] {
-  const firstDay = new Date(Date.UTC(year, month, 1, 0, 0, 0, 0));
-  firstDay.setHours(firstDay.getHours() - 9); // Convert to UTC
-
-  const kstFirstDay = getKSTDate(firstDay);
-  const firstDayOfWeek = kstFirstDay.getUTCDay(); // 0 = Sunday
+  const firstDay = new Date(year, month, 1, 0, 0, 0, 0);
+  const firstDayOfWeek = firstDay.getDay(); // 0 = Sunday
 
   // Start from the Sunday before or on the first day
-  const calendarStart = new Date(firstDay.getTime() - firstDayOfWeek * 24 * 60 * 60 * 1000);
+  const calendarStart = new Date(firstDay);
+  calendarStart.setDate(firstDay.getDate() - firstDayOfWeek);
 
   const weeks: Date[][] = [];
   let currentDate = new Date(calendarStart);
@@ -126,7 +123,7 @@ export function getCalendarWeeks(year: number, month: number): Date[][] {
     const weekDays: Date[] = [];
     for (let day = 0; day < 7; day++) {
       weekDays.push(new Date(currentDate));
-      currentDate = new Date(currentDate.getTime() + 24 * 60 * 60 * 1000);
+      currentDate.setDate(currentDate.getDate() + 1);
     }
     weeks.push(weekDays);
   }
@@ -166,9 +163,9 @@ export function getTimeSlotPosition(
   startHour: number = 0,
   pixelsPerHour: number = 60
 ): number {
-  const kstTime = getKSTDate(time);
-  const hours = kstTime.getUTCHours();
-  const minutes = kstTime.getUTCMinutes();
+  const kstTime = new Date(time.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
+  const hours = kstTime.getHours();
+  const minutes = kstTime.getMinutes();
 
   const totalMinutes = (hours - startHour) * 60 + minutes;
   return (totalMinutes / 60) * pixelsPerHour;
@@ -176,7 +173,9 @@ export function getTimeSlotPosition(
 
 // Date arithmetic helpers
 export function addDays(date: Date, days: number): Date {
-  return new Date(date.getTime() + days * 24 * 60 * 60 * 1000);
+  const result = new Date(date);
+  result.setDate(result.getDate() + days);
+  return result;
 }
 
 export function addWeeks(date: Date, weeks: number): Date {
@@ -184,21 +183,14 @@ export function addWeeks(date: Date, weeks: number): Date {
 }
 
 export function addMonths(date: Date, months: number): Date {
-  const kstDate = getKSTDate(date);
-  const newDate = new Date(Date.UTC(
-    kstDate.getUTCFullYear(),
-    kstDate.getUTCMonth() + months,
-    kstDate.getUTCDate(),
-    0, 0, 0, 0
-  ));
-  newDate.setHours(newDate.getHours() - 9);
-  return newDate;
+  const result = new Date(date);
+  result.setMonth(result.getMonth() + months);
+  return result;
 }
 
 // Format helpers for display
 export function formatMonthYear(date: Date): string {
-  const kstDate = getKSTDate(date);
-  return kstDate.toLocaleDateString('ko-KR', {
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     timeZone: 'Asia/Seoul',
@@ -207,16 +199,14 @@ export function formatMonthYear(date: Date): string {
 
 export function formatWeekRange(weekStart: Date): string {
   const weekEnd = addDays(weekStart, 6);
-  const kstStart = getKSTDate(weekStart);
-  const kstEnd = getKSTDate(weekEnd);
 
-  const startStr = kstStart.toLocaleDateString('ko-KR', {
+  const startStr = weekStart.toLocaleDateString('ko-KR', {
     month: 'short',
     day: 'numeric',
     timeZone: 'Asia/Seoul',
   });
 
-  const endStr = kstEnd.toLocaleDateString('ko-KR', {
+  const endStr = weekEnd.toLocaleDateString('ko-KR', {
     month: 'short',
     day: 'numeric',
     timeZone: 'Asia/Seoul',
@@ -226,8 +216,7 @@ export function formatWeekRange(weekStart: Date): string {
 }
 
 export function formatDayDate(date: Date): string {
-  const kstDate = getKSTDate(date);
-  return kstDate.toLocaleDateString('ko-KR', {
+  return date.toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
     day: 'numeric',

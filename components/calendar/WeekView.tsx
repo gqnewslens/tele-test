@@ -40,10 +40,11 @@ export default function WeekView({ currentDate, events, onEventClick }: WeekView
         <div className="w-16 flex-shrink-0 border-r border-gray-700"></div>
 
         {/* Day headers */}
-        {weekDays.map((day, index) => {
-          const kstDay = getKSTDate(day);
+        {weekDays.map((day) => {
           const isToday = isSameDay(day, today);
-          const dayName = ['일', '월', '화', '수', '목', '금', '토'][index];
+          const dayOfWeek = day.getDay(); // 0 = Sunday, 6 = Saturday
+          const dayName = ['일', '월', '화', '수', '목', '금', '토'][dayOfWeek];
+          const dayDate = day.getDate();
 
           return (
             <div
@@ -58,7 +59,7 @@ export default function WeekView({ currentDate, events, onEventClick }: WeekView
                   isToday ? 'text-blue-400' : 'text-white'
                 }`}
               >
-                {kstDay.getUTCDate()}
+                {dayDate}
               </div>
             </div>
           );

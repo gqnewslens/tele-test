@@ -21,9 +21,8 @@ export default function MonthView({ currentDate, events, onEventClick }: MonthVi
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const today = getKSTToday();
 
-  const kstCurrent = getKSTDate(currentDate);
-  const currentMonth = kstCurrent.getUTCMonth();
-  const currentYear = kstCurrent.getUTCFullYear();
+  const currentMonth = currentDate.getMonth();
+  const currentYear = currentDate.getFullYear();
 
   const weeks = getCalendarWeeks(currentYear, currentMonth);
   const eventsByDate = groupEventsByDate(events);
@@ -51,11 +50,10 @@ export default function MonthView({ currentDate, events, onEventClick }: MonthVi
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="grid grid-cols-7">
             {week.map((date, dayIndex) => {
-              const kstDate = getKSTDate(date);
               const dateKey = date.toISOString().split('T')[0];
               const dayEvents = eventsByDate.get(dateKey) || [];
               const isToday = isSameDay(date, today);
-              const isCurrentMonth = kstDate.getUTCMonth() === currentMonth;
+              const isCurrentMonth = date.getMonth() === currentMonth;
               const isExpanded = expandedDate === dateKey;
 
               const visibleEvents = isExpanded
@@ -80,7 +78,7 @@ export default function MonthView({ currentDate, events, onEventClick }: MonthVi
                         : 'text-gray-600'
                     }`}
                   >
-                    {kstDate.getUTCDate()}
+                    {date.getDate()}
                   </div>
 
                   {/* Events */}
