@@ -4,13 +4,19 @@ import { getGoogleCalendarClient } from '@/lib/calendar/client';
 export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
+    const start = searchParams.get('start');
+    const end = searchParams.get('end');
     const days = parseInt(searchParams.get('days') || '7');
     const type = searchParams.get('type') || 'upcoming';
 
     const calendar = getGoogleCalendarClient();
 
     let events;
-    if (type === 'today') {
+
+    // Support date range queries for new calendar views
+    if (start && end) {
+      events = await calendar.listEvents(start, end, 100);
+    } else if (type === 'today') {
       events = await calendar.getTodayEvents();
     } else {
       events = await calendar.getUpcomingEvents(days);

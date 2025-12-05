@@ -7,10 +7,12 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "setup-webhook": "tsx scripts/setup-webhook.ts"
+    "setup-webhook": "tsx scripts/setup-webhook.ts",
+    "test-crawler": "tsx scripts/test-crawler.ts"
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.86.0",
+    "cheerio": "^1.1.2",
     "class-variance-authority": "^0.7.1",
     "cloudinary": "^2.8.0",
     "clsx": "^2.1.1",

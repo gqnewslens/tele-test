@@ -1,6 +1,20 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import CalendarHeader, { ViewMode } from './calendar/CalendarHeader';
+import DayView from './calendar/DayView';
+import WeekView from './calendar/WeekView';
+import MonthView from './calendar/MonthView';
+import {
+  getKSTToday,
+  addDays,
+  addWeeks,
+  addMonths,
+  getStartOfDay,
+  getEndOfDay,
+  getWeekStart,
+  getMonthStart,
+} from '@/lib/utils/dateUtils';
 
 interface CalendarEvent {
   id: string;
@@ -19,20 +33,24 @@ interface CalendarEvent {
 }
 
 export default function Calendar() {
+  const [viewMode, setViewMode] = useState<ViewMode>('week');
+  const [currentDate, setCurrentDate] = useState<Date>(getKSTToday());
   const [events, setEvents] = useState<CalendarEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [viewType, setViewType] = useState<'today' | 'week'>('today');
 
   useEffect(() => {
-    fetchEvents();
-  }, [viewType]);
+    fetchEventsForView();
+  }, [currentDate, viewMode]);
 
-  const fetchEvents = async () => {
+  const fetchEventsForView = async () => {
     try {
       setLoading(true);
-      const days = viewType === 'today' ? 1 : 7;
-      const res = await fetch(`/api/calendar/events?type=${viewType}&days=${days}`);
+      const { start, end } = getDateRangeForView();
+
+      const res = await fetch(
+        `/api/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`
+      );
       const data = await res.json();
 
       if (data.success) {
@@ -48,64 +66,80 @@ export default function Calendar() {
     }
   };
 
-  const formatEventTime = (event: CalendarEvent) => {
-    const startDate = event.start.dateTime || event.start.date;
-    const endDate = event.end.dateTime || event.end.date;
-
-    if (!startDate) return '';
-
-    const start = new Date(startDate);
-    const end = endDate ? new Date(endDate) : null;
-
-    const dateStr = start.toLocaleDateString('ko-KR', {
-      month: 'short',
-      day: 'numeric',
-      weekday: 'short',
-      timeZone: 'Asia/Seoul',
-    });
-
-    if (event.start.dateTime) {
-      const timeStr = start.toLocaleTimeString('ko-KR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Seoul',
-      });
-      const endTimeStr = end?.toLocaleTimeString('ko-KR', {
-        hour: '2-digit',
-        minute: '2-digit',
-        timeZone: 'Asia/Seoul',
-      });
-
-      return `${dateStr} ${timeStr}${endTimeStr ? ` - ${endTimeStr}` : ''}`;
+  const getDateRangeForView = () => {
+    switch (viewMode) {
+      case 'day':
+        return {
+          start: getStartOfDay(currentDate),
+          end: getEndOfDay(currentDate),
+        };
+      case 'week': {
+        const weekStart = getWeekStart(currentDate, false);
+        return {
+          start: weekStart,
+          end: new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000),
+        };
+      }
+      case 'month': {
+        const monthStart = getMonthStart(currentDate);
+        const monthEnd = addMonths(monthStart, 1);
+        // Add extra days to cover full calendar grid (6 weeks)
+        return {
+          start: new Date(monthStart.getTime() - 7 * 24 * 60 * 60 * 1000),
+          end: new Date(monthEnd.getTime() + 14 * 24 * 60 * 60 * 1000),
+        };
+      }
+      default:
+        return {
+          start: getStartOfDay(currentDate),
+          end: getEndOfDay(currentDate),
+        };
     }
-
-    return dateStr;
   };
 
-  const isEventToday = (event: CalendarEvent) => {
-    const eventDateStr = event.start.dateTime || event.start.date || '';
-    if (!eventDateStr) return false;
-
-    // Convert event date to KST
-    const eventDate = new Date(eventDateStr);
-    const eventKST = new Date(eventDate.toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-
-    // Get today's date in KST
-    const todayKST = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Seoul' }));
-
-    return (
-      eventKST.getDate() === todayKST.getDate() &&
-      eventKST.getMonth() === todayKST.getMonth() &&
-      eventKST.getFullYear() === todayKST.getFullYear()
-    );
+  const handleNavigatePrev = () => {
+    setCurrentDate(prev => {
+      switch (viewMode) {
+        case 'day':
+          return addDays(prev, -1);
+        case 'week':
+          return addWeeks(prev, -1);
+        case 'month':
+          return addMonths(prev, -1);
+        default:
+          return prev;
+      }
+    });
   };
 
-  if (loading) {
+  const handleNavigateNext = () => {
+    setCurrentDate(prev => {
+      switch (viewMode) {
+        case 'day':
+          return addDays(prev, 1);
+        case 'week':
+          return addWeeks(prev, 1);
+        case 'month':
+          return addMonths(prev, 1);
+        default:
+          return prev;
+      }
+    });
+  };
+
+  const handleNavigateToday = () => {
+    setCurrentDate(getKSTToday());
+  };
+
+  const handleEventClick = (event: CalendarEvent) => {
+    if (event.htmlLink) {
+      window.open(event.htmlLink, '_blank', 'noopener,noreferrer');
+    }
+  };
+
+  if (loading && events.length === 0) {
     return (
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">📅 캘린더</h2>
-        </div>
         <div className="text-center text-gray-400 py-8">로딩 중...</div>
       </div>
     );
@@ -114,9 +148,6 @@ export default function Calendar() {
   if (error) {
     return (
       <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="text-xl font-bold">📅 캘린더</h2>
-        </div>
         <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-400">
           {error}
         </div>
@@ -126,82 +157,39 @@ export default function Calendar() {
 
   return (
     <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-      <div className="flex items-center justify-between mb-4">
-        <h2 className="text-xl font-bold">📅 캘린더</h2>
-        <div className="flex gap-2">
-          <button
-            onClick={() => setViewType('today')}
-            className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-              viewType === 'today'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
-          >
-            오늘
-          </button>
-          <button
-            onClick={() => setViewType('week')}
-            className={`px-3 py-1 rounded-lg text-sm transition-colors ${
-              viewType === 'week'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-700 text-gray-300 hover:bg-gray-600'
-            }`}
-          >
-            이번 주
-          </button>
-          <button
-            onClick={fetchEvents}
-            className="px-3 py-1 bg-gray-700 text-gray-300 rounded-lg text-sm hover:bg-gray-600 transition-colors"
-          >
-            🔄
-          </button>
-        </div>
-      </div>
+      <CalendarHeader
+        currentDate={currentDate}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        onNavigatePrev={handleNavigatePrev}
+        onNavigateNext={handleNavigateNext}
+        onNavigateToday={handleNavigateToday}
+        onRefresh={fetchEventsForView}
+      />
 
-      {events.length === 0 ? (
-        <div className="text-center text-gray-400 py-8">
-          {viewType === 'today' ? '오늘 일정이 없습니다' : '이번 주 일정이 없습니다'}
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {events.map((event) => (
-            <div
-              key={event.id}
-              className={`rounded-lg p-4 border transition-colors ${
-                isEventToday(event)
-                  ? 'bg-blue-900/30 border-blue-700'
-                  : 'bg-gray-700/50 border-gray-600 hover:border-gray-500'
-              }`}
-            >
-              <div className="flex items-start gap-3">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-medium text-white mb-1">{event.summary}</h3>
-                  <p className="text-sm text-gray-400 mb-2">{formatEventTime(event)}</p>
-                  {event.description && (
-                    <p className="text-sm text-gray-300 mb-2 whitespace-pre-wrap">
-                      {event.description}
-                    </p>
-                  )}
-                  {event.location && (
-                    <p className="text-sm text-gray-400 flex items-center gap-1">
-                      📍 {event.location}
-                    </p>
-                  )}
-                </div>
-                {event.htmlLink && (
-                  <a
-                    href={event.htmlLink}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-400 hover:text-blue-300 text-sm"
-                  >
-                    상세보기 →
-                  </a>
-                )}
-              </div>
-            </div>
-          ))}
-        </div>
+      {/* Render appropriate view */}
+      {viewMode === 'day' && (
+        <DayView
+          currentDate={currentDate}
+          events={events}
+          onEventClick={handleEventClick}
+        />
+      )}
+
+      {viewMode === 'week' && (
+        <WeekView
+          currentDate={currentDate}
+          events={events}
+          onEventClick={handleEventClick}
+        />
+      )}
+
+      {viewMode === 'month' && (
+        <MonthView
+          currentDate={currentDate}
+          events={events}
+          onEventClick={handleEventClick}
+        />
       )}
     </div>
   );

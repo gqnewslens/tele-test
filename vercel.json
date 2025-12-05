@@ -1,0 +1,10 @@
+{
+  "_comment": "Cron jobs are disabled (requires Vercel Pro plan). Use manual API calls instead.",
+  "crons_disabled": [
+    {
+      "path": "/api/cron/crawl",
+      "schedule": "0 */6 * * *",
+      "description": "Auto-crawl every 6 hours (disabled - use manual trigger instead)"
+    }
+  ]
+}

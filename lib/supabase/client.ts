@@ -14,6 +14,22 @@ export interface TelegramPost {
   media_link?: string;
 }
 
+export interface PressRelease {
+  id?: number;
+  created_at?: string;
+  source: 'msit' | 'kcc';
+  source_id: string;
+  title: string;
+  content?: string;
+  published_at: string;
+  url: string;
+  category?: string;
+  department?: string;
+  author?: string;
+  attachments?: { name: string; url: string; size?: string }[];
+  last_updated?: string;
+}
+
 class SupabaseDB {
   private client: SupabaseClient;
 
@@ -116,6 +132,87 @@ class SupabaseDB {
 
     if (error) {
       throw new Error(`Failed to delete post: ${error.message}`);
+    }
+  }
+
+  // Press Release Methods
+
+  async upsertPressRelease(
+    release: Omit<PressRelease, 'id' | 'created_at' | 'last_updated'>
+  ): Promise<PressRelease> {
+    const { data, error } = await this.client
+      .from('press_releases')
+      .upsert(
+        {
+          ...release,
+          last_updated: new Date().toISOString(),
+        },
+        {
+          onConflict: 'source,source_id',
+        }
+      )
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to upsert press release: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getPressReleases(filter?: {
+    source?: 'msit' | 'kcc';
+    limit?: number;
+  }): Promise<PressRelease[]> {
+    let query = this.client
+      .from('press_releases')
+      .select('*')
+      .order('published_at', { ascending: false });
+
+    if (filter?.source) {
+      query = query.eq('source', filter.source);
+    }
+
+    if (filter?.limit) {
+      query = query.limit(filter.limit);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch press releases: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async getPressReleaseBySourceId(
+    source: 'msit' | 'kcc',
+    sourceId: string
+  ): Promise<PressRelease | null> {
+    const { data, error } = await this.client
+      .from('press_releases')
+      .select('*')
+      .eq('source', source)
+      .eq('source_id', sourceId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch press release: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async deletePressRelease(id: number): Promise<void> {
+    const { error } = await this.client.from('press_releases').delete().eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete press release: ${error.message}`);
     }
   }
 }
