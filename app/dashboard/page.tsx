@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import Calendar from '@/components/Calendar';
 
 interface Post {
   id: number;
@@ -144,13 +145,13 @@ export default function Dashboard() {
     return '💬';
   };
 
-  const filterButtons: { type: FilterType; label: string; icon: string }[] = [
-    { type: 'all', label: '전체', icon: '📋' },
-    { type: 'notice', label: '공지', icon: '📢' },
-    { type: 'document', label: '문서', icon: '📄' },
-    { type: 'link', label: '링크', icon: '🔗' },
-    { type: 'image', label: '이미지', icon: '🖼️' },
-    { type: 'video', label: '영상', icon: '🎬' },
+  const filterButtons: { type: FilterType; label: string }[] = [
+    { type: 'all', label: '전체'},
+    { type: 'notice', label: '공지'},
+    { type: 'document', label: '문서'},
+    { type: 'link', label: '링크'},
+    { type: 'image', label: '이미지'},
+    { type: 'video', label: '영상'},
   ];
 
   // Admin login handler
@@ -284,6 +285,11 @@ export default function Dashboard() {
             ✅ 관리자 모드 - 삭제 기능이 활성화되었습니다
           </div>
         )}
+
+        {/* Google Calendar */}
+        <div className="mb-6">
+          <Calendar />
+        </div>
 
         <div className="mb-4 text-gray-400">
           {filteredPosts.length}개 항목

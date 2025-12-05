@@ -32,6 +32,7 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+!.env.example
 
 # vercel
 .vercel
@@ -39,7 +40,13 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
-*.json
+
+# Google Cloud credentials (IMPORTANT: Never commit these!)
+*service-account*.json
+constant-abacus-*.json
+client_secret_*.json
+
+# Other JSON files are fine
 !package.json
 !package-lock.json
 !tsconfig.json
