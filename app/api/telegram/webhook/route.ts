@@ -80,6 +80,7 @@ async function initializeServices() {
         media_type: msg.mediaType,
         link: link,
         media_link: mediaLink,
+        reply_to_message_id: msg.replyToMessageId,
       });
       console.log('Saved to Supabase');
     } catch (error) {

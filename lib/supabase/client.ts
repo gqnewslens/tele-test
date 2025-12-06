@@ -12,6 +12,7 @@ export interface TelegramPost {
   media_type?: string;
   link?: string;
   media_link?: string;
+  reply_to_message_id?: number;
 }
 
 export interface PressRelease {
@@ -133,6 +134,53 @@ class SupabaseDB {
     if (error) {
       throw new Error(`Failed to delete post: ${error.message}`);
     }
+  }
+
+  async getPostByMessageId(messageId: number): Promise<TelegramPost | null> {
+    const { data, error } = await this.client
+      .from('telegram_posts')
+      .select('*')
+      .eq('message_id', messageId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null; // Not found
+      }
+      throw new Error(`Failed to fetch post: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getReplyChain(messageId: number): Promise<TelegramPost[]> {
+    const chain: TelegramPost[] = [];
+    let currentMessageId: number | undefined = messageId;
+
+    // Build chain by following reply_to_message_id references
+    while (currentMessageId) {
+      const post = await this.getPostByMessageId(currentMessageId);
+      if (!post) break;
+
+      chain.unshift(post); // Add to beginning to maintain chronological order
+      currentMessageId = post.reply_to_message_id;
+    }
+
+    return chain;
+  }
+
+  async getReplies(messageId: number): Promise<TelegramPost[]> {
+    const { data, error } = await this.client
+      .from('telegram_posts')
+      .select('*')
+      .eq('reply_to_message_id', messageId)
+      .order('timestamp', { ascending: true });
+
+    if (error) {
+      throw new Error(`Failed to fetch replies: ${error.message}`);
+    }
+
+    return data || [];
   }
 
   // Press Release Methods
