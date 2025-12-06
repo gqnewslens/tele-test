@@ -37,25 +37,25 @@ export default function CalendarHeader({
   };
 
   return (
-    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-700">
+    <div className="flex items-center justify-between mb-4 pb-4 border-b border-gray-200">
       {/* Navigation */}
       <div className="flex items-center gap-2">
         <button
           onClick={onNavigatePrev}
-          className="px-3 py-1.5 text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
           aria-label="이전"
         >
           ←
         </button>
         <button
           onClick={onNavigateToday}
-          className="px-4 py-1.5 text-sm font-medium text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          className="px-4 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded transition-colors"
         >
           오늘
         </button>
         <button
           onClick={onNavigateNext}
-          className="px-3 py-1.5 text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
           aria-label="다음"
         >
           →
@@ -64,28 +64,28 @@ export default function CalendarHeader({
 
       {/* Date Display */}
       <div className="flex-1 text-center">
-        <h2 className="text-lg font-semibold text-white">{getDateDisplay()}</h2>
+        <h2 className="text-lg font-semibold text-gray-900">{getDateDisplay()}</h2>
       </div>
 
       {/* View Switcher & Refresh */}
       <div className="flex items-center gap-2">
-        <div className="flex border border-gray-700 rounded overflow-hidden">
+        <div className="flex border border-gray-300 rounded overflow-hidden">
           <button
             onClick={() => onViewModeChange('day')}
             className={`px-4 py-1.5 text-sm transition-colors ${
               viewMode === 'day'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             일
           </button>
           <button
             onClick={() => onViewModeChange('week')}
-            className={`px-4 py-1.5 text-sm border-x border-gray-700 transition-colors ${
+            className={`px-4 py-1.5 text-sm border-x border-gray-300 transition-colors ${
               viewMode === 'week'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             주
@@ -95,7 +95,7 @@ export default function CalendarHeader({
             className={`px-4 py-1.5 text-sm transition-colors ${
               viewMode === 'month'
                 ? 'bg-blue-600 text-white'
-                : 'text-gray-300 hover:bg-gray-700'
+                : 'text-gray-600 hover:bg-gray-100'
             }`}
           >
             월
@@ -104,7 +104,7 @@ export default function CalendarHeader({
 
         <button
           onClick={onRefresh}
-          className="px-3 py-1.5 text-gray-300 hover:bg-gray-700 rounded transition-colors"
+          className="px-3 py-1.5 text-gray-600 hover:bg-gray-100 rounded transition-colors"
           aria-label="새로고침"
         >
           🔄

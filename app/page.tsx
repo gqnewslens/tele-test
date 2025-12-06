@@ -350,15 +350,8 @@ export default function Home() {
           <div className="flex justify-between items-center mb-4">
             <h1 className="text-2xl font-bold text-cyan-400">Telegram Dashboard</h1>
 
-            {/* Admin button */}
-            {isAdmin ? (
-              <button
-                onClick={handleLogout}
-                className="px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors flex items-center gap-2"
-              >
-                🔓 로그아웃
-              </button>
-            ) : (
+            {/* Admin button - only show login when not admin */}
+            {!isAdmin && (
               <button
                 onClick={() => setShowLoginModal(true)}
                 className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg transition-colors flex items-center gap-2"
@@ -396,12 +389,20 @@ export default function Home() {
         {isAdmin && (
           <div className="bg-teal-900/30 border border-teal-500/50 rounded-lg p-3 mb-6 flex items-center justify-between">
             <span>✅ 관리자 모드 - 삭제 기능이 활성화되었습니다</span>
-            <a
-              href="/admin/docs"
-              className="text-xs text-teal-300 hover:text-teal-100 underline underline-offset-2"
-            >
-              📄 기술문서
-            </a>
+            <div className="flex items-center gap-3">
+              {/* <a
+                href="/admin/docs"
+                className="text-xs text-teal-300 hover:text-teal-100 underline underline-offset-2"
+              >
+                📄 기술문서
+              </a> */}
+              <button
+                onClick={handleLogout}
+                className="px-2 py-1 text-xs bg-transparent border border-red-500 hover:border-red-400 text-white rounded transition-colors flex items-center gap-1"
+              >
+                🔓 로그아웃
+              </button>
+            </div>
           </div>
         )}
 

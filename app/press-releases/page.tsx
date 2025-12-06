@@ -187,10 +187,11 @@ export default function PressReleasesPage() {
   );
 
   return (
-    <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
-      {/* Header */}
-      <div className="mb-4 flex items-center justify-between">
-        <h1 className="text-xl font-bold text-gray-900">보도자료</h1>
+    <div className="min-h-screen bg-white">
+      <div className="mx-auto max-w-7xl px-4 py-6 sm:px-6 lg:px-8">
+        {/* Header */}
+        <div className="mb-4 flex items-center justify-between">
+          <h1 className="text-2xl font-bold text-gray-900">Press Releases</h1>
         <button
           onClick={handleCrawl}
           disabled={crawling}
@@ -415,6 +416,7 @@ export default function PressReleasesPage() {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }

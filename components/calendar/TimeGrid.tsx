@@ -33,7 +33,7 @@ export default function TimeGrid({
     <div ref={containerRef} className="flex-1 overflow-y-auto">
       <div className="flex" style={{ height: `${totalHeight}px` }}>
         {/* Time column */}
-        <div className="w-16 flex-shrink-0 border-r border-gray-700">
+        <div className="w-16 flex-shrink-0 border-r border-gray-200">
           {timeSlots.map((slot, index) => (
             <div
               key={slot}
@@ -51,7 +51,7 @@ export default function TimeGrid({
           {timeSlots.map((slot, index) => (
             <div
               key={`line-${slot}`}
-              className="absolute left-0 right-0 border-t border-gray-700/50"
+              className="absolute left-0 right-0 border-t border-gray-200"
               style={{
                 top: `${index * pixelsPerHour}px`,
                 height: `${pixelsPerHour}px`,
@@ -60,7 +60,7 @@ export default function TimeGrid({
             >
               {/* Half-hour guide line */}
               <div
-                className="absolute left-0 right-0 border-t border-dashed border-gray-700/30"
+                className="absolute left-0 right-0 border-t border-dashed border-gray-100"
                 style={{ top: `${pixelsPerHour / 2}px` }}
               ></div>
             </div>

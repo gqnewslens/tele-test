@@ -33,12 +33,12 @@ export default function MonthView({ currentDate, events, onEventClick, fullHeigh
   return (
     <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[600px]'}`}>
       {/* Day names header */}
-      <div className="grid grid-cols-7 border-b border-gray-700">
+      <div className="grid grid-cols-7 border-b border-gray-200">
         {dayNames.map((name, index) => (
           <div
             key={name}
             className={`text-center py-2 text-sm font-medium ${
-              index === 0 ? 'text-red-400' : index === 6 ? 'text-blue-400' : 'text-gray-400'
+              index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-gray-600'
             }`}
           >
             {name}
@@ -47,7 +47,7 @@ export default function MonthView({ currentDate, events, onEventClick, fullHeigh
       </div>
 
       {/* Calendar grid */}
-      <div className="flex-1 grid grid-rows-5 md:grid-rows-6 border-l border-gray-700 overflow-y-auto">
+      <div className="flex-1 grid grid-rows-5 md:grid-rows-6 border-l border-gray-200 overflow-y-auto">
         {weeks.map((week, weekIndex) => (
           <div key={weekIndex} className="grid grid-cols-7">
             {week.map((date, dayIndex) => {
@@ -65,25 +65,25 @@ export default function MonthView({ currentDate, events, onEventClick, fullHeigh
               return (
                 <div
                   key={dateKey}
-                  className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 border-r border-b border-gray-700 ${
-                    isToday ? 'bg-blue-900/10 border-blue-500 border-2' : ''
-                  } ${!isCurrentMonth ? 'bg-gray-900/50' : ''}`}
+                  className={`min-h-[80px] md:min-h-[100px] p-1 md:p-2 border-r border-b border-gray-200 flex flex-col ${
+                    isToday ? 'bg-blue-50 border-blue-500 border-2' : ''
+                  } ${!isCurrentMonth ? 'bg-gray-50' : ''}`}
                 >
                   {/* Date number */}
-                  <div
-                    className={`text-sm mb-1 ${
-                      isToday
-                        ? 'inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-semibold'
-                        : isCurrentMonth
-                        ? 'text-white font-medium'
-                        : 'text-gray-600'
-                    }`}
-                  >
-                    {date.getDate()}
+                  <div className="text-sm mb-1 flex-shrink-0">
+                    {isToday ? (
+                      <div className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-blue-600 text-white font-semibold">
+                        {date.getDate()}
+                      </div>
+                    ) : (
+                      <span className={isCurrentMonth ? 'text-gray-900 font-medium' : 'text-gray-400'}>
+                        {date.getDate()}
+                      </span>
+                    )}
                   </div>
 
                   {/* Events */}
-                  <div className="space-y-0.5">
+                  <div className="flex-1 overflow-y-auto space-y-0.5 min-h-0">
                     {visibleEvents.map(event => (
                       <EventCard
                         key={event.id}
@@ -97,7 +97,7 @@ export default function MonthView({ currentDate, events, onEventClick, fullHeigh
                     {!isExpanded && hiddenCount > 0 && (
                       <button
                         onClick={() => setExpandedDate(dateKey)}
-                        className="w-full px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300 text-left"
+                        className="w-full px-2 py-0.5 text-xs text-blue-600 hover:text-blue-700 text-left"
                       >
                         +{hiddenCount}개 더보기
                       </button>
@@ -107,7 +107,7 @@ export default function MonthView({ currentDate, events, onEventClick, fullHeigh
                     {isExpanded && dayEvents.length > MAX_VISIBLE_EVENTS && (
                       <button
                         onClick={() => setExpandedDate(null)}
-                        className="w-full px-2 py-0.5 text-xs text-blue-400 hover:text-blue-300 text-left"
+                        className="w-full px-2 py-0.5 text-xs text-blue-600 hover:text-blue-700 text-left"
                       >
                         줄이기
                       </button>

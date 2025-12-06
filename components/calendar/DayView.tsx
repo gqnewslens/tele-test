@@ -48,7 +48,7 @@ export default function DayView({ currentDate, events, onEventClick, fullHeight 
     <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[600px]'}`}>
       {/* All-day events section */}
       {allDayEvents.length > 0 && (
-        <div className="border-b border-gray-700 p-4 bg-gray-800/50">
+        <div className="border-b border-gray-200 p-4 bg-gray-50">
           <div className="text-xs text-gray-500 mb-2">종일</div>
           <div className="space-y-1">
             {allDayEvents.map(event => (

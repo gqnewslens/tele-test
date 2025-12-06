@@ -168,10 +168,10 @@ export default function CalendarPage() {
 
   if (loading && events.length === 0) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-8 border border-slate-700/50">
-            <div className="text-center text-cyan-400 py-12">로딩 중...</div>
+          <div className="bg-gray-50 rounded-lg p-8 border border-gray-200">
+            <div className="text-center text-gray-600 py-12">로딩 중...</div>
           </div>
         </div>
       </div>
@@ -180,9 +180,9 @@ export default function CalendarPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-slate-900 text-white">
+      <div className="min-h-screen bg-white">
         <div className="max-w-7xl mx-auto px-4 py-6">
-          <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-6 text-red-400">
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-red-600">
             {error}
           </div>
         </div>
@@ -191,14 +191,14 @@ export default function CalendarPage() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
+    <div className="min-h-screen bg-white">
       <div className="max-w-7xl mx-auto px-4 py-6">
         <header className="mb-6">
-          <h1 className="text-2xl font-bold text-cyan-400">일정</h1>
-          <p className="text-slate-400 mt-1">Google Calendar 일정을 확인하세요</p>
+          <h1 className="text-2xl font-bold text-gray-900">Calendar</h1>
+          <p className="text-gray-600 mt-1">Google Calendar 일정을 확인하세요</p>
         </header>
 
-        <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50">
+        <div className="bg-white rounded-lg p-4 border border-gray-200 shadow-sm">
           <CalendarHeader
             currentDate={currentDate}
             viewMode={viewMode}

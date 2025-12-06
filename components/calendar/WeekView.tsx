@@ -36,9 +36,9 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
   return (
     <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[250px]'}`}>
       {/* Week header */}
-      <div className="flex border-b border-gray-700">
+      <div className="flex border-b border-gray-200">
         {/* Empty cell for time column */}
-        <div className="w-16 flex-shrink-0 border-r border-gray-700"></div>
+        <div className="w-16 flex-shrink-0 border-r border-gray-200"></div>
 
         {/* Day headers */}
         {weekDays.map((day) => {
@@ -50,14 +50,14 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
           return (
             <div
               key={day.toISOString()}
-              className={`flex-1 text-center py-2 border-r border-gray-700 ${
-                isToday ? 'bg-blue-900/20' : ''
+              className={`flex-1 text-center py-2 border-r border-gray-200 ${
+                isToday ? 'bg-blue-50' : ''
               }`}
             >
               <div className="text-xs text-gray-500">{dayName}</div>
               <div
                 className={`text-sm font-medium ${
-                  isToday ? 'text-blue-400' : 'text-white'
+                  isToday ? 'text-blue-600' : 'text-gray-900'
                 }`}
               >
                 {dayDate}
@@ -69,9 +69,9 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
 
       {/* All-day events section */}
       {allDayEvents.length > 0 && (
-        <div className="flex border-b border-gray-700 bg-gray-800/50">
+        <div className="flex border-b border-gray-200 bg-gray-50">
           {/* Label */}
-          <div className="w-16 flex-shrink-0 border-r border-gray-700 p-2">
+          <div className="w-16 flex-shrink-0 border-r border-gray-200 p-2">
             <div className="text-xs text-gray-500">종일</div>
           </div>
 
@@ -84,7 +84,7 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
             return (
               <div
                 key={`allday-${day.toISOString()}`}
-                className="flex-1 p-2 border-r border-gray-700"
+                className="flex-1 p-2 border-r border-gray-200"
               >
                 <div className="space-y-1">
                   {dayAllDayEvents.map(event => (
@@ -106,7 +106,7 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
       <div className="flex-1 overflow-y-auto">
         <div className="flex min-h-full">
           {/* Time column */}
-          <div className="w-16 flex-shrink-0 border-r border-gray-700">
+          <div className="w-16 flex-shrink-0 border-r border-gray-200">
             {Array.from({ length: 24 }, (_, hour) => (
               <div
                 key={hour}
@@ -129,20 +129,20 @@ export default function WeekView({ currentDate, events, onEventClick, fullHeight
             return (
               <div
                 key={day.toISOString()}
-                className={`flex-1 relative border-r border-gray-700 ${
-                  isToday ? 'bg-blue-900/10' : ''
+                className={`flex-1 relative border-r border-gray-200 ${
+                  isToday ? 'bg-blue-50/30' : ''
                 }`}
               >
                 {/* Grid lines */}
                 {Array.from({ length: 24 }, (_, hour) => (
                   <div
                     key={hour}
-                    className="border-t border-gray-700/50"
+                    className="border-t border-gray-200"
                     style={{ height: `${PIXELS_PER_HOUR}px`, position: 'relative' }}
                   >
                     {/* Half-hour guide line */}
                     <div
-                      className="absolute left-0 right-0 border-t border-dashed border-gray-700/30"
+                      className="absolute left-0 right-0 border-t border-dashed border-gray-100"
                       style={{ top: `${PIXELS_PER_HOUR / 2}px` }}
                     ></div>
                   </div>
