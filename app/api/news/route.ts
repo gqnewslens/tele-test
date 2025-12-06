@@ -16,6 +16,24 @@ interface NaverNewsResponse {
   items: NaverNewsItem[];
 }
 
+/**
+ * Extracts domain from URL using native URL API
+ * @param url - Full URL string
+ * @returns hostname or undefined if invalid
+ */
+function extractDomain(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+
+  try {
+    const parsedUrl = new URL(url);
+    return parsedUrl.hostname;
+  } catch (error) {
+    // Invalid URL - return undefined
+    console.warn(`Failed to extract domain from URL: ${url}`);
+    return undefined;
+  }
+}
+
 export async function GET(request: NextRequest) {
   const { searchParams } = new URL(request.url);
   const query = searchParams.get('query');
@@ -56,12 +74,13 @@ export async function GET(request: NextRequest) {
 
     const data: NaverNewsResponse = await response.json();
 
-    // Clean up HTML tags from title and description
+    // Clean up HTML tags from title and description, extract domain
     const cleanedItems = data.items.map((item) => ({
       title: item.title.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&'),
       link: item.originallink || item.link,
       description: item.description.replace(/<[^>]*>/g, '').replace(/&quot;/g, '"').replace(/&amp;/g, '&'),
       pubDate: item.pubDate,
+      domain: extractDomain(item.originallink) || extractDomain(item.link),
     }));
 
     return NextResponse.json({

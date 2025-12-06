@@ -8,6 +8,7 @@ interface NewsItem {
   link: string;
   description: string;
   pubDate: string;
+  domain?: string;
 }
 
 export default function PressReleasesPage() {
@@ -24,6 +25,10 @@ export default function PressReleasesPage() {
   const [currentPage, setCurrentPage] = useState(1);
   const ITEMS_PER_PAGE = 5;
   const MAX_PAGES = 20; // 최대 100개 (10개 x 10페이지)
+
+  // Multi-select state
+  const [selectedNews, setSelectedNews] = useState<Set<number>>(new Set());
+  const [copySuccess, setCopySuccess] = useState(false);
 
   // Preset search keywords
   const presetKeywords = [
@@ -110,6 +115,43 @@ export default function PressReleasesPage() {
   };
 
   const totalPages = Math.min(Math.ceil(newsTotal / ITEMS_PER_PAGE), MAX_PAGES);
+
+  // Multi-select handlers
+  const toggleNewsSelection = (index: number) => {
+    const newSelected = new Set(selectedNews);
+    if (newSelected.has(index)) {
+      newSelected.delete(index);
+    } else {
+      newSelected.add(index);
+    }
+    setSelectedNews(newSelected);
+  };
+
+  const selectAllNews = () => {
+    if (selectedNews.size === newsResults.length) {
+      setSelectedNews(new Set());
+    } else {
+      setSelectedNews(new Set(newsResults.map((_, i) => i)));
+    }
+  };
+
+  const copySelectedToClipboard = async () => {
+    const selectedItems = Array.from(selectedNews)
+      .sort((a, b) => a - b)
+      .map(index => {
+        const news = newsResults[index];
+        return `${news.title}\n${news.domain || '출처 없음'} | ${formatNewsDate(news.pubDate)}\n${news.link}`;
+      })
+      .join('\n\n');
+
+    try {
+      await navigator.clipboard.writeText(selectedItems);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      console.error('Failed to copy:', err);
+    }
+  };
 
   const formatNewsDate = (dateStr: string) => {
     const date = new Date(dateStr);
@@ -204,14 +246,33 @@ export default function PressReleasesPage() {
         {newsResults.length > 0 && (
           <div className="bg-white rounded-lg border border-green-100 overflow-hidden">
             <div className="px-3 py-2 bg-green-50 border-b border-green-100 flex items-center justify-between">
-              <span className="text-xs text-green-700 font-medium">
-                검색결과 {newsTotal.toLocaleString()}건 중 {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, newsTotal)}번째
-              </span>
+              <div className="flex items-center gap-3">
+                <span className="text-xs text-green-700 font-medium">
+                  검색결과 {newsTotal.toLocaleString()}건 중 {(currentPage - 1) * ITEMS_PER_PAGE + 1}-{Math.min(currentPage * ITEMS_PER_PAGE, newsTotal)}번째
+                </span>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={selectAllNews}
+                    className="text-xs text-green-600 hover:text-green-700 font-medium"
+                  >
+                    {selectedNews.size === newsResults.length ? '전체 해제' : '전체 선택'}
+                  </button>
+                  {selectedNews.size > 0 && (
+                    <button
+                      onClick={copySelectedToClipboard}
+                      className="inline-flex items-center gap-1 px-2 py-1 text-xs font-medium text-white bg-green-600 hover:bg-green-700 rounded transition-colors"
+                    >
+                      {copySuccess ? '✓ 복사됨' : `📋 ${selectedNews.size}개 복사`}
+                    </button>
+                  )}
+                </div>
+              </div>
               <button
                 onClick={() => {
                   setNewsResults([]);
                   setSearchQuery('');
                   setCurrentPage(1);
+                  setSelectedNews(new Set());
                 }}
                 className="text-xs text-gray-500 hover:text-gray-700"
               >
@@ -220,27 +281,50 @@ export default function PressReleasesPage() {
             </div>
             <div className="divide-y divide-gray-100">
               {newsResults.map((news, index) => (
-                <a
+                <div
                   key={index}
-                  href={news.link}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block px-3 py-2.5 hover:bg-gray-50 transition-colors"
+                  className="flex items-start gap-2 px-3 py-2.5 hover:bg-gray-50 transition-colors"
                 >
-                  <div className="flex items-start gap-2">
-                    <span className="text-xs text-gray-400 whitespace-nowrap mt-0.5">
-                      {formatNewsDate(news.pubDate)}
-                    </span>
-                    <div className="flex-1 min-w-0">
-                      <h3 className="text-sm font-medium text-gray-800 line-clamp-1 hover:text-green-600">
-                        {news.title}
-                      </h3>
-                      <p className="text-xs text-gray-500 line-clamp-1 mt-0.5">
+                  {/* Checkbox */}
+                  <input
+                    type="checkbox"
+                    checked={selectedNews.has(index)}
+                    onChange={(e) => {
+                      e.stopPropagation();
+                      toggleNewsSelection(index);
+                    }}
+                    className="mt-1 w-4 h-4 text-green-600 border-gray-300 rounded focus:ring-green-500"
+                  />
+
+                  {/* News Content */}
+                  <a
+                    href={news.link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex-1 block"
+                  >
+                    <div className="flex flex-col gap-1">
+                      {/* 1행: 제목 - 언론사 - 날짜 */}
+                      <div className="flex items-center gap-2">
+                        <h3 className="text-base font-medium text-gray-800 line-clamp-1 hover:text-green-600 flex-1">
+                          {news.title}
+                        </h3>
+                        {news.domain && (
+                          <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 whitespace-nowrap">
+                            {news.domain}
+                          </span>
+                        )}
+                        <span className="text-xs text-gray-400 whitespace-nowrap">
+                          {formatNewsDate(news.pubDate)}
+                        </span>
+                      </div>
+                      {/* 2행: 디스크립션 */}
+                      <p className="text-xs text-gray-500 line-clamp-1">
                         {news.description}
                       </p>
                     </div>
-                  </div>
-                </a>
+                  </a>
+                </div>
               ))}
             </div>
             {/* Pagination */}

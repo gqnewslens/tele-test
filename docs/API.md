@@ -306,5 +306,16 @@ All endpoints return consistent error format:
 
 ---
 
+## RSS Feeds
+
+정부 보도자료 RSS 피드에 직접 접근할 수 있습니다.
+
+| 기관 | RSS URL |
+|------|---------|
+| 과학기술정보통신부 (MSIT) | https://www.korea.kr/rss/dept_msit.xml |
+| 방송통신위원회 (KCC) | https://www.korea.kr/rss/dept_kmcc.xml |
+
+---
+
 Document Version: 1.0
 Last Updated: December 2024
