@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Gov Press Monitor",
-  description: "Korean government press release monitoring system",
+  title: "GQAI | Workstation",
+  description: "GQAI Workstation - Telegram monitoring and press release system",
 };
 
 export default function RootLayout({

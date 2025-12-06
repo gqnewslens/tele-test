@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 const tabs = [
-  { name: 'Home', href: '/' },
+  { name: 'Dashboard', href: '/' },
   { name: 'Press Releases', href: '/press-releases' },
   { name: 'API Docs', href: '/api-docs' },
 ];
@@ -13,12 +13,12 @@ export function Navigation() {
   const pathname = usePathname();
 
   return (
-    <nav className="border-b border-gray-200 bg-white">
+    <nav className="border-b border-cyan-900/50 bg-slate-900">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 justify-between">
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <h1 className="text-xl font-bold">Gov Press Monitor</h1>
+              <h1 className="text-xl font-bold text-cyan-400">GQAI | Workstation</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {tabs.map((tab) => {
@@ -29,8 +29,8 @@ export function Navigation() {
                     href={tab.href}
                     className={`inline-flex items-center border-b-2 px-1 pt-1 text-sm font-medium ${
                       isActive
-                        ? 'border-indigo-500 text-gray-900'
-                        : 'border-transparent text-gray-500 hover:border-gray-300 hover:text-gray-700'
+                        ? 'border-cyan-500 text-cyan-400'
+                        : 'border-transparent text-slate-400 hover:border-slate-600 hover:text-slate-200'
                     }`}
                   >
                     {tab.name}
