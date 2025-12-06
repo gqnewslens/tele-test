@@ -48,7 +48,7 @@ export class MSITRSSCrawler {
           releases.push({
             source: this.source,
             source_id: sourceId,
-            title: item.title || '',
+            title: this.cleanHTML(item.title || ''),
             content: content || undefined,
             published_at: publishedAt,
             url: item.link || '',
@@ -88,7 +88,7 @@ export class MSITRSSCrawler {
   }
 
   /**
-   * Clean HTML tags from content
+   * Clean HTML tags and decode HTML entities from content
    */
   private cleanHTML(html: string): string {
     return html
@@ -98,6 +98,21 @@ export class MSITRSSCrawler {
       .replace(/&amp;/g, '&')
       .replace(/&lt;/g, '<')
       .replace(/&gt;/g, '>')
+      .replace(/&middot;/g, '·')
+      .replace(/&bull;/g, '•')
+      .replace(/&ndash;/g, '–')
+      .replace(/&mdash;/g, '—')
+      .replace(/&lsquo;/g, ''')
+      .replace(/&rsquo;/g, ''')
+      .replace(/&ldquo;/g, '"')
+      .replace(/&rdquo;/g, '"')
+      .replace(/&hellip;/g, '…')
+      .replace(/&copy;/g, '©')
+      .replace(/&reg;/g, '®')
+      .replace(/&trade;/g, '™')
+      .replace(/&apos;/g, "'")
+      .replace(/&#(\d+);/g, (_, num) => String.fromCharCode(parseInt(num, 10)))
+      .replace(/&#x([0-9A-Fa-f]+);/g, (_, hex) => String.fromCharCode(parseInt(hex, 16)))
       .replace(/\s+/g, ' ')
       .trim();
   }
