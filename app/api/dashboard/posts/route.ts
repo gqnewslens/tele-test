@@ -18,6 +18,7 @@ export async function GET() {
       mediaType: row.media_type || '',
       link: row.link || '',
       mediaLink: row.media_link || '',
+      replyToMessageId: row.reply_to_message_id ? String(row.reply_to_message_id) : null,
     }));
 
     return NextResponse.json({ posts });
