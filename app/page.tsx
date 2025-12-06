@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import Calendar from '@/components/Calendar';
+import UpcomingEvents from '@/components/UpcomingEvents';
 
 interface Post {
   id: number;
@@ -111,10 +111,8 @@ export default function Home() {
         filtered = posts.filter(isNotice);
         break;
       default:
-        // 'all' - exclude general conversation
-        filtered = posts.filter(p =>
-          isDocument(p) || isImage(p) || isVideo(p) || hasLink(p) || isNotice(p)
-        );
+        // 'all' - show all posts
+        filtered = posts;
     }
 
     setFilteredPosts(filtered);
@@ -286,9 +284,17 @@ export default function Home() {
           </div>
         )}
 
-        {/* Google Calendar */}
-        <div className="mb-6">
-          <Calendar />
+        {/* Top Section: 6:4 layout */}
+        <div className="flex gap-4 mb-6">
+          {/* Left side - 60% */}
+          <div className="w-3/5 bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px]">
+            {/* Reserved for future content */}
+          </div>
+
+          {/* Right side - 40% Calendar */}
+          <div className="w-2/5">
+            <UpcomingEvents />
+          </div>
         </div>
 
         <div className="mb-4 text-slate-400">

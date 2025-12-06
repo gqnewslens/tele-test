@@ -20,11 +20,12 @@ interface WeekViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  fullHeight?: boolean;
 }
 
 const PIXELS_PER_HOUR = 60;
 
-export default function WeekView({ currentDate, events, onEventClick }: WeekViewProps) {
+export default function WeekView({ currentDate, events, onEventClick, fullHeight = false }: WeekViewProps) {
   const weekDays = getWeekDays(currentDate, false); // Sunday start
   const today = getKSTToday();
   const isCurrentWeek = weekDays.some(day => isSameDay(day, today));
@@ -33,7 +34,7 @@ export default function WeekView({ currentDate, events, onEventClick }: WeekView
   const allDayEvents = getAllDayEvents(events);
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[250px]'}`}>
       {/* Week header */}
       <div className="flex border-b border-gray-700">
         {/* Empty cell for time column */}

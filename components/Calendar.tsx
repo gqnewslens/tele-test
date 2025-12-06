@@ -45,13 +45,20 @@ export default function Calendar() {
 
   const fetchEventsForView = async () => {
     try {
-      setLoading(true);
+      // Only show loading on initial load, not on view mode changes
+      if (events.length === 0) {
+        setLoading(true);
+      }
       const { start, end } = getDateRangeForView();
+
+      console.log('[Calendar] Fetching events:', { viewMode, start: start.toISOString(), end: end.toISOString() });
 
       const res = await fetch(
         `/api/calendar/events?start=${start.toISOString()}&end=${end.toISOString()}`
       );
       const data = await res.json();
+
+      console.log('[Calendar] API response:', { success: data.success, eventCount: data.events?.length, events: data.events });
 
       if (data.success) {
         setEvents(data.events);
@@ -60,6 +67,7 @@ export default function Calendar() {
         setError(data.error);
       }
     } catch (err) {
+      console.error('[Calendar] Fetch error:', err);
       setError('캘린더를 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
@@ -139,16 +147,16 @@ export default function Calendar() {
 
   if (loading && events.length === 0) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <div className="text-center text-gray-400 py-8">로딩 중...</div>
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px]">
+        <div className="text-center text-slate-400 py-8">로딩 중...</div>
       </div>
     );
   }
 
   if (error) {
     return (
-      <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
-        <div className="bg-red-900/30 border border-red-700 rounded-lg p-4 text-red-400">
+      <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px]">
+        <div className="bg-red-900/30 border border-red-500/50 rounded-lg p-4 text-red-400">
           {error}
         </div>
       </div>
@@ -156,7 +164,7 @@ export default function Calendar() {
   }
 
   return (
-    <div className="bg-gray-800 rounded-lg p-6 border border-gray-700">
+    <div className="bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px] overflow-hidden">
       <CalendarHeader
         currentDate={currentDate}
         viewMode={viewMode}

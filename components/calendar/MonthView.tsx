@@ -13,11 +13,12 @@ interface MonthViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  fullHeight?: boolean;
 }
 
 const MAX_VISIBLE_EVENTS = 3;
 
-export default function MonthView({ currentDate, events, onEventClick }: MonthViewProps) {
+export default function MonthView({ currentDate, events, onEventClick, fullHeight = false }: MonthViewProps) {
   const [expandedDate, setExpandedDate] = useState<string | null>(null);
   const today = getKSTToday();
 
@@ -30,7 +31,7 @@ export default function MonthView({ currentDate, events, onEventClick }: MonthVi
   const dayNames = ['일', '월', '화', '수', '목', '금', '토'];
 
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[600px]'}`}>
       {/* Day names header */}
       <div className="grid grid-cols-7 border-b border-gray-700">
         {dayNames.map((name, index) => (

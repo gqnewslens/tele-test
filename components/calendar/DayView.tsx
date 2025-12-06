@@ -19,14 +19,15 @@ interface DayViewProps {
   currentDate: Date;
   events: CalendarEvent[];
   onEventClick?: (event: CalendarEvent) => void;
+  fullHeight?: boolean;
 }
 
 const PIXELS_PER_HOUR = 60;
 
-export default function DayView({ currentDate, events, onEventClick }: DayViewProps) {
+export default function DayView({ currentDate, events, onEventClick, fullHeight = false }: DayViewProps) {
   const isToday = isSameDay(currentDate, getKSTToday());
 
-  // Filter events for this day
+  // Filter events for this specific day (in case we receive events from a wider range)
   const dayEvents = events.filter(event => isEventInDay(event, currentDate));
   const allDayEvents = getAllDayEvents(dayEvents);
   const timedEvents = getTimedEvents(dayEvents);
@@ -34,8 +35,17 @@ export default function DayView({ currentDate, events, onEventClick }: DayViewPr
   // Calculate layouts for overlapping events
   const eventLayouts = calculateEventColumns(timedEvents);
 
+  console.log('[DayView] Rendering:', {
+    totalEvents: events.length,
+    dayEvents: dayEvents.length,
+    allDayCount: allDayEvents.length,
+    timedCount: timedEvents.length,
+    layoutsCount: eventLayouts.length,
+    currentDate: currentDate.toISOString()
+  });
+
   return (
-    <div className="flex flex-col h-[600px]">
+    <div className={`flex flex-col ${fullHeight ? 'h-full' : 'h-[600px]'}`}>
       {/* All-day events section */}
       {allDayEvents.length > 0 && (
         <div className="border-b border-gray-700 p-4 bg-gray-800/50">

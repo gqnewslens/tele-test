@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useLayoutEffect, useRef } from 'react';
 import { generateTimeSlots } from '@/lib/utils/dateUtils';
 
 interface TimeGridProps {
@@ -20,9 +20,10 @@ export default function TimeGrid({
 }: TimeGridProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const timeSlots = generateTimeSlots(startHour, endHour, 60);
+  const totalHeight = (endHour - startHour) * pixelsPerHour;
 
-  useEffect(() => {
-    // Scroll to 7am on mount
+  // Use useLayoutEffect to scroll before paint, preventing flash
+  useLayoutEffect(() => {
     if (containerRef.current) {
       containerRef.current.scrollTop = 7 * pixelsPerHour;
     }
@@ -30,7 +31,7 @@ export default function TimeGrid({
 
   return (
     <div ref={containerRef} className="flex-1 overflow-y-auto">
-      <div className="flex min-h-full">
+      <div className="flex" style={{ height: `${totalHeight}px` }}>
         {/* Time column */}
         <div className="w-16 flex-shrink-0 border-r border-gray-700">
           {timeSlots.map((slot, index) => (
@@ -46,14 +47,14 @@ export default function TimeGrid({
 
         {/* Content area */}
         <div className="flex-1 relative">
-          {/* Grid lines */}
+          {/* Grid lines - background layer */}
           {timeSlots.map((slot, index) => (
             <div
               key={`line-${slot}`}
-              className="border-t border-gray-700/50"
+              className="absolute left-0 right-0 border-t border-gray-700/50"
               style={{
+                top: `${index * pixelsPerHour}px`,
                 height: `${pixelsPerHour}px`,
-                position: 'relative',
               }}
               onClick={() => onTimeSlotClick?.(startHour + index)}
             >
@@ -65,7 +66,7 @@ export default function TimeGrid({
             </div>
           ))}
 
-          {/* Events rendered here */}
+          {/* Events rendered here - on top of grid lines */}
           {children}
         </div>
       </div>
