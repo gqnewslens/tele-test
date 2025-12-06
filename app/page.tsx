@@ -394,8 +394,14 @@ export default function Home() {
         )}
 
         {isAdmin && (
-          <div className="bg-teal-900/30 border border-teal-500/50 rounded-lg p-3 mb-6 flex items-center gap-2">
-            ✅ 관리자 모드 - 삭제 기능이 활성화되었습니다
+          <div className="bg-teal-900/30 border border-teal-500/50 rounded-lg p-3 mb-6 flex items-center justify-between">
+            <span>✅ 관리자 모드 - 삭제 기능이 활성화되었습니다</span>
+            <a
+              href="/admin/docs"
+              className="text-xs text-teal-300 hover:text-teal-100 underline underline-offset-2"
+            >
+              📄 기술문서
+            </a>
           </div>
         )}
 
