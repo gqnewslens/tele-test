@@ -14,6 +14,7 @@ interface Post {
   mediaType: string;
   link: string;
   mediaLink: string;
+  replyToMessageId: string | null;
 }
 
 type FilterType = 'all' | 'document' | 'link' | 'image' | 'video' | 'notice';
@@ -35,6 +36,11 @@ export default function Home() {
   // Delete state
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
+
+  // Reply chain state
+  const [replyChainModal, setReplyChainModal] = useState<Post | null>(null);
+  const [replyChain, setReplyChain] = useState<Post[]>([]);
+  const [loadingChain, setLoadingChain] = useState(false);
 
   // Check for existing token on mount
   useEffect(() => {
@@ -191,6 +197,23 @@ export default function Home() {
     setIsAdmin(false);
     setAdminToken(null);
     localStorage.removeItem('adminToken');
+  };
+
+  // Reply chain handler
+  const handleShowReplyChain = async (post: Post) => {
+    setReplyChainModal(post);
+    setLoadingChain(true);
+    try {
+      const res = await fetch(`/api/posts/reply-chain?messageId=${post.messageId}`);
+      if (res.ok) {
+        const data = await res.json();
+        setReplyChain(data.chain);
+      }
+    } catch (err) {
+      console.error('Failed to fetch reply chain:', err);
+    } finally {
+      setLoadingChain(false);
+    }
   };
 
   // Delete handler
@@ -367,6 +390,16 @@ export default function Home() {
                       </a>
                     )}
 
+                    {/* Reply chain button - show if this post is a reply or has replies */}
+                    {post.replyToMessageId && (
+                      <button
+                        onClick={() => handleShowReplyChain(post)}
+                        className="inline-flex items-center gap-1 px-3 py-1 bg-purple-900/50 text-purple-400 rounded-full text-sm hover:bg-purple-900 transition-colors"
+                      >
+                        🔗 대화 체인
+                      </button>
+                    )}
+
                     {/* Delete button - only visible for admin */}
                     {isAdmin && (
                       deleteConfirm === post.id ? (
@@ -408,6 +441,52 @@ export default function Home() {
           )}
         </div>
       </main>
+
+      {/* Reply Chain Modal */}
+      {replyChainModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl mx-4 border border-purple-900/50 max-h-[80vh] overflow-hidden flex flex-col">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-purple-400">🔗 대화 체인</h2>
+              <button
+                onClick={() => {
+                  setReplyChainModal(null);
+                  setReplyChain([]);
+                }}
+                className="text-slate-400 hover:text-white text-2xl"
+              >
+                ✕
+              </button>
+            </div>
+
+            {loadingChain ? (
+              <div className="text-center text-slate-400 py-8">로딩 중...</div>
+            ) : (
+              <div className="space-y-3 overflow-y-auto flex-1">
+                {replyChain.map((chainPost, index) => (
+                  <div
+                    key={chainPost.id}
+                    className={`p-3 rounded-lg border ${
+                      chainPost.messageId === replyChainModal.messageId
+                        ? 'bg-purple-900/30 border-purple-500/50'
+                        : 'bg-slate-700/50 border-slate-600/50'
+                    }`}
+                  >
+                    {index > 0 && (
+                      <div className="text-purple-400 text-xs mb-2">↳ 리플라이</div>
+                    )}
+                    <div className="flex items-center gap-2 mb-1">
+                      <span className="font-medium text-cyan-400 text-sm">{chainPost.channel}</span>
+                      <span className="text-slate-500 text-xs">{formatDate(chainPost.timestamp)}</span>
+                    </div>
+                    <p className="text-slate-200 text-sm whitespace-pre-wrap">{chainPost.text}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
 
       {/* Login Modal */}
       {showLoginModal && (
