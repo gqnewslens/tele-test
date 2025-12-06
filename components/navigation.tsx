@@ -19,7 +19,7 @@ export function Navigation() {
         <div className="flex h-16 justify-between">
           <div className="flex">
             <div className="flex flex-shrink-0 items-center">
-              <h1 className="text-xl font-bold text-cyan-400">GQAI | Workstation</h1>
+              <h1 className="text-xl font-bold text-cyan-400">GQAI | Workspace</h1>
             </div>
             <div className="hidden sm:ml-6 sm:flex sm:space-x-8">
               {tabs.map((tab) => {

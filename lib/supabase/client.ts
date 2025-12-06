@@ -15,6 +15,18 @@ export interface TelegramPost {
   reply_to_message_id?: number;
 }
 
+export interface PinnedPost {
+  id?: number;
+  created_at?: string;
+  post_id: number;
+  pinned_at?: string;
+  pinned_by?: string;
+  display_order?: number;
+  custom_title?: string;
+  // Joined fields from telegram_posts
+  post?: TelegramPost;
+}
+
 export interface PressRelease {
   id?: number;
   created_at?: string;
@@ -261,6 +273,89 @@ class SupabaseDB {
 
     if (error) {
       throw new Error(`Failed to delete press release: ${error.message}`);
+    }
+  }
+
+  // Pinned Posts Methods
+
+  async getPinnedPosts(): Promise<(PinnedPost & { post: TelegramPost })[]> {
+    const { data, error } = await this.client
+      .from('pinned_posts')
+      .select(`
+        *,
+        post:telegram_posts(*)
+      `)
+      .order('display_order', { ascending: true })
+      .order('pinned_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch pinned posts: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async pinPost(postId: number, pinnedBy?: string, customTitle?: string): Promise<PinnedPost> {
+    // Get max display_order
+    const { data: maxData } = await this.client
+      .from('pinned_posts')
+      .select('display_order')
+      .order('display_order', { ascending: false })
+      .limit(1);
+
+    const nextOrder = (maxData?.[0]?.display_order ?? -1) + 1;
+
+    const { data, error } = await this.client
+      .from('pinned_posts')
+      .insert({
+        post_id: postId,
+        pinned_by: pinnedBy,
+        custom_title: customTitle,
+        display_order: nextOrder,
+      })
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to pin post: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async unpinPost(postId: number): Promise<void> {
+    const { error } = await this.client
+      .from('pinned_posts')
+      .delete()
+      .eq('post_id', postId);
+
+    if (error) {
+      throw new Error(`Failed to unpin post: ${error.message}`);
+    }
+  }
+
+  async isPinned(postId: number): Promise<boolean> {
+    const { data, error } = await this.client
+      .from('pinned_posts')
+      .select('id')
+      .eq('post_id', postId)
+      .single();
+
+    if (error && error.code !== 'PGRST116') {
+      throw new Error(`Failed to check pin status: ${error.message}`);
+    }
+
+    return !!data;
+  }
+
+  async updatePinnedPostOrder(id: number, newOrder: number): Promise<void> {
+    const { error } = await this.client
+      .from('pinned_posts')
+      .update({ display_order: newOrder })
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to update pin order: ${error.message}`);
     }
   }
 }

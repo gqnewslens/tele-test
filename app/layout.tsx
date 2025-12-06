@@ -14,8 +14,8 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GQAI | Workstation",
-  description: "GQAI Workstation - Telegram monitoring and press release system",
+  title: "GQAI | Workspace",
+  description: "GQAI Workspace - Telegram monitoring and press release system",
 };
 
 export default function RootLayout({

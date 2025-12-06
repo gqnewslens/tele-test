@@ -1,4 +1,4 @@
-# GQAI Workstation Design System
+# GQAI Workspace Design System
 
 ## Deep Ocean Theme
 

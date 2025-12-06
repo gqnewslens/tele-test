@@ -3,6 +3,14 @@
 import { useEffect, useState } from 'react';
 import UpcomingEvents from '@/components/UpcomingEvents';
 
+interface Reply {
+  id: number;
+  messageId: string;
+  text: string;
+  channel: string;
+  timestamp: string;
+}
+
 interface Post {
   id: number;
   timestamp: string;
@@ -15,9 +23,23 @@ interface Post {
   link: string;
   mediaLink: string;
   replyToMessageId: string | null;
+  replies: Reply[];
 }
 
 type FilterType = 'all' | 'document' | 'link' | 'image' | 'video' | 'notice';
+
+interface PinnedPost {
+  id: number;
+  post_id: number;
+  pinned_at: string;
+  custom_title?: string;
+  post: {
+    id: number;
+    text: string;
+    channel: string;
+    timestamp: string;
+  };
+}
 
 export default function Home() {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -25,6 +47,10 @@ export default function Home() {
   const [filter, setFilter] = useState<FilterType>('all');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Pinned posts state
+  const [pinnedPosts, setPinnedPosts] = useState<PinnedPost[]>([]);
+  const [pinnedIds, setPinnedIds] = useState<Set<number>>(new Set());
 
   // Admin state
   const [isAdmin, setIsAdmin] = useState(false);
@@ -37,10 +63,11 @@ export default function Home() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
-  // Reply chain state
-  const [replyChainModal, setReplyChainModal] = useState<Post | null>(null);
-  const [replyChain, setReplyChain] = useState<Post[]>([]);
-  const [loadingChain, setLoadingChain] = useState(false);
+  // Reply expand state
+  const [expandedReplies, setExpandedReplies] = useState<Set<number>>(new Set());
+
+  // Pin/unpin state
+  const [pinning, setPinning] = useState<number | null>(null);
 
   // Check for existing token on mount
   useEffect(() => {
@@ -68,8 +95,12 @@ export default function Home() {
 
   useEffect(() => {
     fetchPosts();
+    fetchPinnedPosts();
     // Auto-refresh every 30 seconds
-    const interval = setInterval(fetchPosts, 30000);
+    const interval = setInterval(() => {
+      fetchPosts();
+      fetchPinnedPosts();
+    }, 30000);
     return () => clearInterval(interval);
   }, []);
 
@@ -84,10 +115,24 @@ export default function Home() {
       const data = await res.json();
       setPosts(data.posts);
       setError(null);
-    } catch (err) {
+    } catch {
       setError('데이터를 불러오는데 실패했습니다');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const fetchPinnedPosts = async () => {
+    try {
+      const res = await fetch('/api/pinned-posts');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.success) {
+        setPinnedPosts(data.data);
+        setPinnedIds(new Set(data.data.map((p: PinnedPost) => p.post_id)));
+      }
+    } catch {
+      // Silently fail for pinned posts
     }
   };
 
@@ -199,21 +244,68 @@ export default function Home() {
     localStorage.removeItem('adminToken');
   };
 
-  // Reply chain handler
-  const handleShowReplyChain = async (post: Post) => {
-    setReplyChainModal(post);
-    setLoadingChain(true);
+  // Pin/unpin handler
+  const handlePin = async (postId: number) => {
+    if (!adminToken) return;
+
+    setPinning(postId);
     try {
-      const res = await fetch(`/api/posts/reply-chain?messageId=${post.messageId}`);
-      if (res.ok) {
-        const data = await res.json();
-        setReplyChain(data.chain);
+      const res = await fetch('/api/pinned-posts', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${adminToken}`,
+        },
+        body: JSON.stringify({ postId }),
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        fetchPinnedPosts();
+      } else {
+        alert(`핀 고정 실패: ${data.error}`);
       }
-    } catch (err) {
-      console.error('Failed to fetch reply chain:', err);
+    } catch {
+      alert('핀 고정 중 오류가 발생했습니다');
     } finally {
-      setLoadingChain(false);
+      setPinning(null);
     }
+  };
+
+  const handleUnpin = async (postId: number) => {
+    if (!adminToken) return;
+
+    setPinning(postId);
+    try {
+      const res = await fetch(`/api/pinned-posts?postId=${postId}`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${adminToken}` },
+      });
+
+      const data = await res.json();
+      if (data.success) {
+        fetchPinnedPosts();
+      } else {
+        alert(`핀 해제 실패: ${data.error}`);
+      }
+    } catch {
+      alert('핀 해제 중 오류가 발생했습니다');
+    } finally {
+      setPinning(null);
+    }
+  };
+
+  // Toggle replies visibility
+  const toggleReplies = (postId: number) => {
+    setExpandedReplies(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(postId)) {
+        newSet.delete(postId);
+      } else {
+        newSet.add(postId);
+      }
+      return newSet;
+    });
   };
 
   // Delete handler
@@ -309,9 +401,51 @@ export default function Home() {
 
         {/* Top Section: 6:4 layout */}
         <div className="flex gap-4 mb-6">
-          {/* Left side - 60% */}
-          <div className="w-3/5 bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px]">
-            {/* Reserved for future content */}
+          {/* Left side - 60% 주요 공지 */}
+          <div className="w-3/5 bg-slate-800/50 backdrop-blur-sm rounded-lg p-4 border border-slate-700/50 h-[300px] flex flex-col">
+            <div className="flex items-center justify-between mb-3">
+              <h2 className="text-lg font-bold text-cyan-400 flex items-center gap-2">
+                📌 주요 공지
+              </h2>
+              <span className="text-xs text-slate-500">{pinnedPosts.length}개</span>
+            </div>
+
+            {pinnedPosts.length === 0 ? (
+              <div className="flex-1 flex items-center justify-center text-slate-500 text-sm">
+                {isAdmin ? '게시글에서 📌 버튼을 눌러 주요 공지를 추가하세요' : '주요 공지가 없습니다'}
+              </div>
+            ) : (
+              <div className="flex-1 overflow-y-auto space-y-2">
+                {pinnedPosts.map((pinned) => (
+                  <div
+                    key={pinned.id}
+                    className="bg-slate-700/50 rounded-lg p-3 border border-slate-600/50 hover:border-cyan-700/50 transition-colors group"
+                  >
+                    <div className="flex items-start justify-between gap-2">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <span className="text-cyan-400 text-xs font-medium">{pinned.post.channel}</span>
+                          <span className="text-slate-500 text-xs">{formatDate(pinned.post.timestamp)}</span>
+                        </div>
+                        <p className="text-slate-200 text-sm line-clamp-2">
+                          {pinned.custom_title || pinned.post.text}
+                        </p>
+                      </div>
+                      {isAdmin && (
+                        <button
+                          onClick={() => handleUnpin(pinned.post_id)}
+                          disabled={pinning === pinned.post_id}
+                          className="opacity-0 group-hover:opacity-100 p-1 text-red-400 hover:text-red-300 transition-all"
+                          title="핀 해제"
+                        >
+                          {pinning === pinned.post_id ? '...' : '✕'}
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Right side - 40% Calendar */}
@@ -390,14 +524,35 @@ export default function Home() {
                       </a>
                     )}
 
-                    {/* Reply chain button - show if this post is a reply or has replies */}
-                    {post.replyToMessageId && (
+                    {/* Reply toggle button - show if this post has replies */}
+                    {post.replies && post.replies.length > 0 && (
                       <button
-                        onClick={() => handleShowReplyChain(post)}
+                        onClick={() => toggleReplies(post.id)}
                         className="inline-flex items-center gap-1 px-3 py-1 bg-purple-900/50 text-purple-400 rounded-full text-sm hover:bg-purple-900 transition-colors"
                       >
-                        🔗 대화 체인
+                        💬 댓글 {post.replies.length}개 {expandedReplies.has(post.id) ? '접기' : '보기'}
                       </button>
+                    )}
+
+                    {/* Pin/Unpin button - only visible for admin */}
+                    {isAdmin && (
+                      pinnedIds.has(post.id) ? (
+                        <button
+                          onClick={() => handleUnpin(post.id)}
+                          disabled={pinning === post.id}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-amber-600 text-white rounded-full text-sm hover:bg-amber-700 transition-colors disabled:opacity-50"
+                        >
+                          {pinning === post.id ? '...' : '📌 고정됨'}
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => handlePin(post.id)}
+                          disabled={pinning === post.id}
+                          className="inline-flex items-center gap-1 px-3 py-1 bg-slate-700 text-slate-300 rounded-full text-sm hover:bg-amber-900/50 hover:text-amber-400 transition-colors disabled:opacity-50"
+                        >
+                          {pinning === post.id ? '...' : '📌 고정'}
+                        </button>
+                      )
                     )}
 
                     {/* Delete button - only visible for admin */}
@@ -429,6 +584,25 @@ export default function Home() {
                       )
                     )}
                   </div>
+
+                  {/* Inline replies */}
+                  {post.replies && post.replies.length > 0 && expandedReplies.has(post.id) && (
+                    <div className="mt-3 ml-8 space-y-2 border-l-2 border-purple-600/50 pl-4">
+                      {post.replies.map((reply) => (
+                        <div
+                          key={reply.id}
+                          className="p-2 bg-slate-700/30 rounded-lg border border-slate-600/30"
+                        >
+                          <div className="flex items-center gap-2 mb-1">
+                            <span className="text-purple-400 text-xs">↳</span>
+                            <span className="font-medium text-cyan-400 text-xs">{reply.channel}</span>
+                            <span className="text-slate-500 text-xs">{formatDate(reply.timestamp)}</span>
+                          </div>
+                          <p className="text-slate-300 text-sm whitespace-pre-wrap">{reply.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
@@ -441,52 +615,6 @@ export default function Home() {
           )}
         </div>
       </main>
-
-      {/* Reply Chain Modal */}
-      {replyChainModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50">
-          <div className="bg-slate-800 rounded-lg p-6 w-full max-w-2xl mx-4 border border-purple-900/50 max-h-[80vh] overflow-hidden flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-purple-400">🔗 대화 체인</h2>
-              <button
-                onClick={() => {
-                  setReplyChainModal(null);
-                  setReplyChain([]);
-                }}
-                className="text-slate-400 hover:text-white text-2xl"
-              >
-                ✕
-              </button>
-            </div>
-
-            {loadingChain ? (
-              <div className="text-center text-slate-400 py-8">로딩 중...</div>
-            ) : (
-              <div className="space-y-3 overflow-y-auto flex-1">
-                {replyChain.map((chainPost, index) => (
-                  <div
-                    key={chainPost.id}
-                    className={`p-3 rounded-lg border ${
-                      chainPost.messageId === replyChainModal.messageId
-                        ? 'bg-purple-900/30 border-purple-500/50'
-                        : 'bg-slate-700/50 border-slate-600/50'
-                    }`}
-                  >
-                    {index > 0 && (
-                      <div className="text-purple-400 text-xs mb-2">↳ 리플라이</div>
-                    )}
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="font-medium text-cyan-400 text-sm">{chainPost.channel}</span>
-                      <span className="text-slate-500 text-xs">{formatDate(chainPost.timestamp)}</span>
-                    </div>
-                    <p className="text-slate-200 text-sm whitespace-pre-wrap">{chainPost.text}</p>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Login Modal */}
       {showLoginModal && (
