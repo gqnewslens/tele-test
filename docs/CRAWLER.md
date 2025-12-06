@@ -1,28 +1,34 @@
 # Press Release Crawler Documentation
 
-과기부(MSIT)와 방통위(KCC) 보도자료를 수동으로 수집하는 크롤링 시스템입니다.
+과기부(MSIT)와 방통위(KMCC) 보도자료를 RSS 기반으로 수집하는 시스템입니다.
 
 ## 📋 개요
 
-이 시스템은 다음 두 기관의 보도자료를 수집합니다:
+이 시스템은 정부 정책브리핑(Korea.kr)의 RSS 피드를 통해 다음 두 기관의 보도자료를 수집합니다:
 
-1. **과학기술정보통신부 (MSIT)**: https://www.msit.go.kr/bbs/list.do?sCode=user&mPid=208&mId=307
-2. **방송통신위원회 (KCC)**: https://www.kcc.go.kr/user.do?boardId=1113&page=A05030000&dc=K05030000
+1. **과학기술정보통신부 (MSIT)**: https://www.korea.kr/rss/dept_msit.xml
+2. **방송미디어통신위원회 (KMCC)**: https://www.korea.kr/rss/dept_kmcc.xml
 
 ## 🏗️ 시스템 구조
 
 ```
 lib/crawler/
 ├── types.ts          # 타입 정의
-├── base.ts           # 기본 크롤러 클래스
-├── msit.ts           # 과기부 크롤러
-├── kcc.ts            # 방통위 크롤러
+├── rss-msit.ts       # 과기부 RSS 크롤러
+├── rss-kmcc.ts       # 방통위 RSS 크롤러
 ├── service.ts        # 크롤러 서비스 (오케스트레이션)
 └── index.ts          # 모듈 export
+
+app/
+├── press-releases/   # 보도자료 페이지 (UI)
+└── api-docs/         # API 문서 페이지
 
 app/api/
 ├── crawl/            # 수동 크롤링 API
 └── press-releases/   # 보도자료 조회 API
+
+components/
+└── navigation.tsx    # 상단 네비게이션
 
 supabase/migrations/
 └── 002_press_releases.sql  # DB 스키마
@@ -227,11 +233,12 @@ async function collectPressReleases() {
 
 ## ✨ 주요 기능
 
-1. **자동 중복 제거**: 이미 수집된 보도자료는 스킵
-2. **콘텐츠 변경 감지**: 제목, 내용, 카테고리, 첨부파일 변경 시 자동 업데이트
-3. **에러 핸들링**: 일부 실패해도 나머지 계속 처리
-4. **Rate Limiting**: 서버 부하 방지 (500ms 딜레이)
-5. **수동 실행**: 필요할 때만 크롤링 실행 (비용 절감)
+1. **RSS 기반 수집**: 정부 공식 RSS 피드 사용 (안정적, 표준화)
+2. **자동 중복 제거**: 이미 수집된 보도자료는 스킵
+3. **콘텐츠 변경 감지**: 제목, 내용, 카테고리 변경 시 자동 업데이트
+4. **에러 핸들링**: 일부 실패해도 나머지 계속 처리
+5. **수동 실행**: 버튼 클릭으로 간편하게 수집 (비용 절감)
+6. **웹 UI 제공**: 보도자료 목록 확인, 필터링, 수집 기능
 
 ## 🔧 프로그래밍 방식 사용
 

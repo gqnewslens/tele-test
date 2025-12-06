@@ -1,17 +1,17 @@
-import { MSITCrawler } from './msit';
-import { KCCCrawler } from './kcc';
-import { ICrawler, CrawlResult, PressRelease } from './types';
+import { MSITRSSCrawler } from './rss-msit';
+import { KMCCRSSCrawler } from './rss-kmcc';
+import { CrawlResult, PressRelease } from './types';
 import { getSupabaseDB } from '../supabase/client';
 
 /**
- * Crawler Service - Orchestrates crawling and storage
+ * RSS-based Crawler Service - Orchestrates RSS feed parsing and storage
  */
 export class CrawlerService {
-  private crawlers: ICrawler[];
+  private crawlers: Array<MSITRSSCrawler | KMCCRSSCrawler>;
   private db = getSupabaseDB();
 
   constructor() {
-    this.crawlers = [new MSITCrawler(), new KCCCrawler()];
+    this.crawlers = [new MSITRSSCrawler(), new KMCCRSSCrawler()];
   }
 
   /**
@@ -49,7 +49,7 @@ export class CrawlerService {
   /**
    * Run a single crawler and save results
    */
-  async crawlOne(crawler: ICrawler, limit = 20): Promise<CrawlResult> {
+  async crawlOne(crawler: MSITRSSCrawler | KMCCRSSCrawler, limit = 20): Promise<CrawlResult> {
     const source = crawler.getSource();
     const startTime = Date.now();
 
