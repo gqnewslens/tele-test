@@ -1,28 +1,79 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { randomBytes, createHash } from 'crypto';
+import { createHmac } from 'crypto';
 
-// Simple in-memory token store (in production, use Redis or similar)
-const validTokens = new Map<string, { expiresAt: number }>();
+// JWT-like token generation (stateless, no server memory needed)
+const JWT_SECRET = process.env.JWT_SECRET || process.env.ADMIN_PASSWORD || 'fallback-secret-key';
+const TOKEN_EXPIRY_HOURS = 24;
 
-// Clean up expired tokens periodically
-function cleanupExpiredTokens() {
-  const now = Date.now();
-  for (const [token, data] of validTokens.entries()) {
-    if (data.expiresAt < now) {
-      validTokens.delete(token);
-    }
+interface TokenPayload {
+  exp: number;
+  iat: number;
+  role: 'admin';
+}
+
+// Base64URL encode
+function base64UrlEncode(str: string): string {
+  return Buffer.from(str)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=/g, '');
+}
+
+// Base64URL decode
+function base64UrlDecode(str: string): string {
+  str = str.replace(/-/g, '+').replace(/_/g, '/');
+  while (str.length % 4) str += '=';
+  return Buffer.from(str, 'base64').toString();
+}
+
+// Generate HMAC signature
+function sign(data: string): string {
+  return createHmac('sha256', JWT_SECRET).update(data).digest('base64url');
+}
+
+// Generate JWT token
+function generateToken(): string {
+  const header = { alg: 'HS256', typ: 'JWT' };
+  const payload: TokenPayload = {
+    exp: Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000,
+    iat: Date.now(),
+    role: 'admin',
+  };
+
+  const headerB64 = base64UrlEncode(JSON.stringify(header));
+  const payloadB64 = base64UrlEncode(JSON.stringify(payload));
+  const signature = sign(`${headerB64}.${payloadB64}`);
+
+  return `${headerB64}.${payloadB64}.${signature}`;
+}
+
+// Verify JWT token
+export function verifyToken(token: string | null): boolean {
+  if (!token) return false;
+
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return false;
+
+    const [headerB64, payloadB64, signature] = parts;
+
+    // Verify signature
+    const expectedSignature = sign(`${headerB64}.${payloadB64}`);
+    if (signature !== expectedSignature) return false;
+
+    // Verify expiration
+    const payload: TokenPayload = JSON.parse(base64UrlDecode(payloadB64));
+    if (payload.exp < Date.now()) return false;
+
+    return payload.role === 'admin';
+  } catch {
+    return false;
   }
 }
 
-// Generate a secure token
-function generateToken(): string {
-  return randomBytes(32).toString('hex');
-}
-
-// Hash password for comparison (simple approach)
-function hashPassword(password: string): string {
-  return createHash('sha256').update(password).digest('hex');
-}
+// Legacy export for backward compatibility
+export const validTokens = new Map<string, { expiresAt: number }>();
 
 export async function POST(request: NextRequest) {
   try {
@@ -52,13 +103,9 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Generate token with 24-hour expiry
+    // Generate JWT token
     const token = generateToken();
-    const expiresAt = Date.now() + 24 * 60 * 60 * 1000;
-    validTokens.set(token, { expiresAt });
-
-    // Cleanup old tokens
-    cleanupExpiredTokens();
+    const expiresAt = Date.now() + TOKEN_EXPIRY_HOURS * 60 * 60 * 1000;
 
     return NextResponse.json({
       success: true,
@@ -77,52 +124,16 @@ export async function POST(request: NextRequest) {
 // Verify token endpoint
 export async function GET(request: NextRequest) {
   const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
+  const token = authHeader?.replace('Bearer ', '') ?? null;
 
-  if (!token) {
-    return NextResponse.json({ valid: false }, { status: 401 });
-  }
-
-  const tokenData = validTokens.get(token);
-
-  if (!tokenData) {
-    return NextResponse.json({ valid: false }, { status: 401 });
-  }
-
-  if (tokenData.expiresAt < Date.now()) {
-    validTokens.delete(token);
+  if (!verifyToken(token)) {
     return NextResponse.json({ valid: false }, { status: 401 });
   }
 
   return NextResponse.json({ valid: true });
 }
 
-// Logout endpoint
-export async function DELETE(request: NextRequest) {
-  const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
-
-  if (token) {
-    validTokens.delete(token);
-  }
-
+// Logout endpoint (JWT is stateless, just return success)
+export async function DELETE() {
   return NextResponse.json({ success: true });
 }
-
-// Export for use in other API routes
-export function verifyAdminToken(token: string | null): boolean {
-  if (!token) return false;
-
-  const tokenData = validTokens.get(token);
-  if (!tokenData) return false;
-
-  if (tokenData.expiresAt < Date.now()) {
-    validTokens.delete(token);
-    return false;
-  }
-
-  return true;
-}
-
-// Export the token store for use in delete API
-export { validTokens };

@@ -1,23 +1,12 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getSupabaseDB, TaskStatus, STATUS_PROGRESS_MAP } from '@/lib/supabase/client';
-import { validTokens } from '@/app/api/admin/auth/route';
+import { verifyToken as verifyJwtToken } from '@/app/api/admin/auth/route';
 
-// Verify admin token
+// Verify admin token using JWT
 function verifyToken(request: NextRequest): boolean {
   const authHeader = request.headers.get('Authorization');
-  const token = authHeader?.replace('Bearer ', '');
-
-  if (!token) return false;
-
-  const tokenData = validTokens.get(token);
-  if (!tokenData) return false;
-
-  if (tokenData.expiresAt < Date.now()) {
-    validTokens.delete(token);
-    return false;
-  }
-
-  return true;
+  const token = authHeader?.replace('Bearer ', '') ?? null;
+  return verifyJwtToken(token);
 }
 
 // GET /api/tasks - 태스크 목록 조회
