@@ -391,6 +391,47 @@ export default function TasksPage() {
                   style={{ width: `${selectedTask.progress}%` }}
                 />
               </div>
+              {isAdmin && (
+                <input
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={selectedTask.progress}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, progress: Number(e.target.value) })}
+                  onMouseUp={async () => {
+                    try {
+                      await fetch(`/api/tasks/${selectedTask.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ progress: selectedTask.progress }),
+                      });
+                      setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, progress: selectedTask.progress } : t));
+                    } catch (error) {
+                      console.error('Failed to update progress:', error);
+                    }
+                  }}
+                  onTouchEnd={async () => {
+                    try {
+                      await fetch(`/api/tasks/${selectedTask.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ progress: selectedTask.progress }),
+                      });
+                      setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, progress: selectedTask.progress } : t));
+                    } catch (error) {
+                      console.error('Failed to update progress:', error);
+                    }
+                  }}
+                  className="w-full mt-2 accent-cyan-500 cursor-pointer"
+                />
+              )}
             </div>
 
             {/* Status selector */}
