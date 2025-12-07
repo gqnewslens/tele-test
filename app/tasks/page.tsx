@@ -478,10 +478,11 @@ export default function TasksPage() {
                       const input = detailAssigneeInput.trim().replace(/^@/, '');
                       if (input && !(selectedTask.assignees || []).includes(input)) {
                         const updatedAssignees = [...(selectedTask.assignees || []), input];
+                        const previousAssignees = selectedTask.assignees || [];
                         setSelectedTask({ ...selectedTask, assignees: updatedAssignees });
                         setDetailAssigneeInput('');
                         try {
-                          await fetch(`/api/tasks/${selectedTask.id}`, {
+                          const res = await fetch(`/api/tasks/${selectedTask.id}`, {
                             method: 'PUT',
                             headers: {
                               'Content-Type': 'application/json',
@@ -489,9 +490,19 @@ export default function TasksPage() {
                             },
                             body: JSON.stringify({ assignees: updatedAssignees }),
                           });
-                          setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignees: updatedAssignees } : t));
+                          if (res.ok) {
+                            setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignees: updatedAssignees } : t));
+                          } else {
+                            // 실패 시 롤백
+                            const errorData = await res.json();
+                            console.error('API error:', errorData);
+                            alert(`저장 실패: ${errorData.error || res.statusText}`);
+                            setSelectedTask({ ...selectedTask, assignees: previousAssignees });
+                          }
                         } catch (error) {
                           console.error('Failed to update assignees:', error);
+                          alert('네트워크 오류로 저장에 실패했습니다');
+                          setSelectedTask({ ...selectedTask, assignees: previousAssignees });
                         }
                       } else {
                         setDetailAssigneeInput('');
