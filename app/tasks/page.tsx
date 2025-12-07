@@ -348,9 +348,36 @@ export default function TasksPage() {
             </div>
 
             {/* Description */}
-            {selectedTask.description && (
-              <p className="text-slate-400 text-sm mb-4">{selectedTask.description}</p>
-            )}
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-2">내용</label>
+              {isAdmin ? (
+                <textarea
+                  value={selectedTask.description || ''}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, description: e.target.value })}
+                  onBlur={async () => {
+                    try {
+                      await fetch(`/api/tasks/${selectedTask.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          'x-admin-token': adminToken,
+                        },
+                        body: JSON.stringify({ description: selectedTask.description }),
+                      });
+                      setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, description: selectedTask.description } : t));
+                    } catch (error) {
+                      console.error('Failed to update description:', error);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-cyan-600 resize-none min-h-[100px]"
+                  placeholder="태스크 내용을 입력하세요..."
+                />
+              ) : (
+                <p className="text-slate-300 text-sm whitespace-pre-wrap bg-slate-900/50 rounded-lg p-3 min-h-[60px]">
+                  {selectedTask.description || '내용 없음'}
+                </p>
+              )}
+            </div>
 
             {/* Progress bar */}
             <div className="mb-4">
