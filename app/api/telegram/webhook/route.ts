@@ -39,7 +39,7 @@ async function initializeServices() {
     const hasMedia = !!msg.mediaType;
     const taskMatch = TASK_PATTERN.exec(textToCheck);
 
-    // Handle [task] keyword - create task
+    // Handle [task] keyword - create task AND save to dashboard
     // First line = title, rest = description
     if (taskMatch) {
       const fullContent = taskMatch[1].trim();
@@ -51,6 +51,8 @@ async function initializeServices() {
       if (taskDescription) {
         console.log(`Description: ${taskDescription.substring(0, 50)}...`);
       }
+
+      // 1. Create task
       try {
         await db.createTask({
           title: taskTitle,
@@ -64,7 +66,33 @@ async function initializeServices() {
       } catch (error) {
         console.error('Failed to create task:', error);
       }
-      return; // Don't save as regular post
+
+      // 2. Also save to dashboard (telegram_posts)
+      try {
+        let link = '';
+        if (msg.chatType === 'channel') {
+          link = `https://t.me/c/${String(msg.chatId).replace('-100', '')}/${msg.messageId}`;
+        } else if (msg.chatType === 'private') {
+          link = `[Private: ${msg.senderUsername || msg.senderName}]`;
+        } else {
+          link = `https://t.me/c/${String(msg.chatId).replace('-100', '')}/${msg.messageId}`;
+        }
+
+        await db.insertPost({
+          timestamp: msg.date.toISOString(),
+          channel: msg.chatTitle + (msg.senderName ? ` (${msg.senderName})` : ''),
+          message_id: msg.messageId,
+          category: 'Task',
+          subcategory: '할 일',
+          text: `[task] ${taskTitle}${taskDescription ? '\n' + taskDescription : ''}`,
+          link: link,
+        });
+        console.log('Task also saved to dashboard');
+      } catch (error) {
+        console.error('Failed to save task to dashboard:', error);
+      }
+
+      return;
     }
 
     // Only save if: has keyword OR has link OR has media
