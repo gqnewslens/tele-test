@@ -55,6 +55,7 @@ export interface Task {
   updated_at?: string;
   created_by?: string;
   source_message_id?: number;
+  assignee?: string; // 담당자
 }
 
 export interface TaskAttachment {

@@ -269,6 +269,13 @@ export default function TasksPage() {
                 {/* Title */}
                 <span className="flex-1 text-slate-100 font-medium truncate">{task.title}</span>
 
+                {/* Assignee */}
+                {task.assignee && (
+                  <span className="text-xs text-cyan-400 bg-cyan-900/30 px-2 py-0.5 rounded">
+                    {task.assignee}
+                  </span>
+                )}
+
                 {/* Created date */}
                 <span className="text-xs text-slate-500">
                   {task.created_at && new Date(task.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
@@ -350,6 +357,39 @@ export default function TasksPage() {
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
+            </div>
+
+            {/* Assignee */}
+            <div className="mb-4">
+              <label className="block text-sm text-slate-400 mb-2">담당자</label>
+              {isAdmin ? (
+                <input
+                  type="text"
+                  value={selectedTask.assignee || ''}
+                  onChange={(e) => setSelectedTask({ ...selectedTask, assignee: e.target.value })}
+                  onBlur={async () => {
+                    try {
+                      await fetch(`/api/tasks/${selectedTask.id}`, {
+                        method: 'PUT',
+                        headers: {
+                          'Content-Type': 'application/json',
+                          Authorization: `Bearer ${token}`,
+                        },
+                        body: JSON.stringify({ assignee: selectedTask.assignee || null }),
+                      });
+                      setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignee: selectedTask.assignee } : t));
+                    } catch (error) {
+                      console.error('Failed to update assignee:', error);
+                    }
+                  }}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-cyan-600"
+                  placeholder="담당자 이름"
+                />
+              ) : (
+                <p className="text-slate-300 text-sm">
+                  {selectedTask.assignee || '미지정'}
+                </p>
+              )}
             </div>
 
             {/* Description */}
