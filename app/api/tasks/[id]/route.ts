@@ -84,7 +84,7 @@ export async function PUT(
     }
 
     const body = await request.json();
-    const { title, description, status } = body;
+    const { title, description, status, assignees, progress } = body;
 
     const db = getSupabaseDB();
 
@@ -118,6 +118,22 @@ export async function PUT(
       }
       updates.status = status;
       updates.progress = STATUS_PROGRESS_MAP[status as TaskStatus];
+    }
+
+    // 진도율 직접 수정
+    if (progress !== undefined && typeof progress === 'number') {
+      updates.progress = Math.max(0, Math.min(100, progress));
+    }
+
+    // assignees 배열 처리 (@ 태그 형식)
+    if (assignees !== undefined) {
+      if (assignees === null || (Array.isArray(assignees) && assignees.length === 0)) {
+        updates.assignees = null;
+      } else if (Array.isArray(assignees)) {
+        updates.assignees = assignees
+          .map((a: string) => a.trim().replace(/^@/, '')) // @ 제거
+          .filter((a: string) => a.length > 0);
+      }
     }
 
     const task = await db.updateTask(taskId, updates);

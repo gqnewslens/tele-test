@@ -51,13 +51,21 @@ export async function POST(request: NextRequest) {
     }
 
     const body = await request.json();
-    const { title, description, source_message_id } = body;
+    const { title, description, source_message_id, assignees } = body;
 
     if (!title || typeof title !== 'string') {
       return NextResponse.json(
         { error: 'Title is required' },
         { status: 400 }
       );
+    }
+
+    // assignees 배열 처리 (@ 태그 형식)
+    let processedAssignees: string[] | undefined;
+    if (assignees && Array.isArray(assignees)) {
+      processedAssignees = assignees
+        .map((a: string) => a.trim().replace(/^@/, '')) // @ 제거
+        .filter((a: string) => a.length > 0);
     }
 
     const db = getSupabaseDB();
@@ -67,6 +75,7 @@ export async function POST(request: NextRequest) {
       status: 'todo',
       progress: STATUS_PROGRESS_MAP['todo'],
       source_message_id: source_message_id || undefined,
+      assignees: processedAssignees,
     });
 
     return NextResponse.json({ task }, { status: 201 });

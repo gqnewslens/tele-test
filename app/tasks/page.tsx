@@ -40,7 +40,8 @@ export default function TasksPage() {
   // Form states
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
-  const [newAssignee, setNewAssignee] = useState('');
+  const [newAssignees, setNewAssignees] = useState<string[]>([]);
+  const [newAssigneeInput, setNewAssigneeInput] = useState('');
   const [attachmentName, setAttachmentName] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
 
@@ -82,14 +83,15 @@ export default function TasksPage() {
         body: JSON.stringify({
           title: newTitle,
           description: newDescription || undefined,
-          assignee: newAssignee || undefined,
+          assignees: newAssignees.length > 0 ? newAssignees : undefined,
         }),
       });
 
       if (res.ok) {
         setNewTitle('');
         setNewDescription('');
-        setNewAssignee('');
+        setNewAssignees([]);
+        setNewAssigneeInput('');
         setShowCreateModal(false);
         fetchTasks();
       }
@@ -272,11 +274,18 @@ export default function TasksPage() {
                 {/* Title */}
                 <span className="flex-1 text-slate-100 font-medium truncate">{task.title}</span>
 
-                {/* Assignee */}
-                {task.assignee && (
-                  <span className="text-xs text-cyan-400 bg-cyan-900/30 px-2 py-0.5 rounded">
-                    {task.assignee}
-                  </span>
+                {/* Assignees */}
+                {task.assignees && task.assignees.length > 0 && (
+                  <div className="flex gap-1 flex-wrap">
+                    {task.assignees.slice(0, 3).map((name, idx) => (
+                      <span key={idx} className="text-xs text-cyan-400 bg-cyan-900/30 px-2 py-0.5 rounded">
+                        @{name}
+                      </span>
+                    ))}
+                    {task.assignees.length > 3 && (
+                      <span className="text-xs text-slate-500">+{task.assignees.length - 3}</span>
+                    )}
+                  </div>
                 )}
 
                 {/* Created date */}
@@ -318,12 +327,43 @@ export default function TasksPage() {
               </div>
               <div>
                 <label className="block text-sm text-slate-400 mb-1">담당자 (선택)</label>
+                {/* 태그 표시 */}
+                {newAssignees.length > 0 && (
+                  <div className="flex gap-1 flex-wrap mb-2">
+                    {newAssignees.map((name, idx) => (
+                      <span
+                        key={idx}
+                        className="inline-flex items-center gap-1 text-xs text-cyan-400 bg-cyan-900/30 px-2 py-1 rounded"
+                      >
+                        @{name}
+                        <button
+                          type="button"
+                          onClick={() => setNewAssignees(newAssignees.filter((_, i) => i !== idx))}
+                          className="text-cyan-400 hover:text-red-400"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    ))}
+                  </div>
+                )}
+                {/* 입력 필드 */}
                 <input
                   type="text"
-                  value={newAssignee}
-                  onChange={(e) => setNewAssignee(e.target.value)}
+                  value={newAssigneeInput}
+                  onChange={(e) => setNewAssigneeInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if ((e.key === 'Enter' || e.key === ',') && newAssigneeInput.trim()) {
+                      e.preventDefault();
+                      const name = newAssigneeInput.trim().replace(/^@/, '');
+                      if (name && !newAssignees.includes(name)) {
+                        setNewAssignees([...newAssignees, name]);
+                      }
+                      setNewAssigneeInput('');
+                    }
+                  }}
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-cyan-600"
-                  placeholder="담당자 이름"
+                  placeholder="@이름 입력 후 Enter (여러 명 가능)"
                 />
               </div>
               <div>
@@ -372,36 +412,82 @@ export default function TasksPage() {
               </button>
             </div>
 
-            {/* Assignee */}
+            {/* Assignees */}
             <div className="mb-4">
               <label className="block text-sm text-slate-400 mb-2">담당자</label>
+              {/* 태그 표시 */}
+              {selectedTask.assignees && selectedTask.assignees.length > 0 && (
+                <div className="flex gap-1 flex-wrap mb-2">
+                  {selectedTask.assignees.map((name, idx) => (
+                    <span
+                      key={idx}
+                      className="inline-flex items-center gap-1 text-xs text-cyan-400 bg-cyan-900/30 px-2 py-1 rounded"
+                    >
+                      @{name}
+                      {isAdmin && (
+                        <button
+                          type="button"
+                          onClick={async () => {
+                            const newAssignees = selectedTask.assignees!.filter((_, i) => i !== idx);
+                            setSelectedTask({ ...selectedTask, assignees: newAssignees });
+                            try {
+                              await fetch(`/api/tasks/${selectedTask.id}`, {
+                                method: 'PUT',
+                                headers: {
+                                  'Content-Type': 'application/json',
+                                  Authorization: `Bearer ${token}`,
+                                },
+                                body: JSON.stringify({ assignees: newAssignees }),
+                              });
+                              setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignees: newAssignees } : t));
+                            } catch (error) {
+                              console.error('Failed to update assignees:', error);
+                            }
+                          }}
+                          className="text-cyan-400 hover:text-red-400"
+                        >
+                          ×
+                        </button>
+                      )}
+                    </span>
+                  ))}
+                </div>
+              )}
+              {/* 입력 필드 (관리자만) */}
               {isAdmin ? (
                 <input
                   type="text"
-                  value={selectedTask.assignee || ''}
-                  onChange={(e) => setSelectedTask({ ...selectedTask, assignee: e.target.value })}
-                  onBlur={async () => {
-                    try {
-                      await fetch(`/api/tasks/${selectedTask.id}`, {
-                        method: 'PUT',
-                        headers: {
-                          'Content-Type': 'application/json',
-                          Authorization: `Bearer ${token}`,
-                        },
-                        body: JSON.stringify({ assignee: selectedTask.assignee || null }),
-                      });
-                      setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignee: selectedTask.assignee } : t));
-                    } catch (error) {
-                      console.error('Failed to update assignee:', error);
+                  placeholder="@이름 입력 후 Enter"
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-cyan-600"
+                  onKeyDown={async (e) => {
+                    if (e.key === 'Enter' || e.key === ',') {
+                      e.preventDefault();
+                      const input = (e.target as HTMLInputElement).value.trim().replace(/^@/, '');
+                      if (input && !(selectedTask.assignees || []).includes(input)) {
+                        const newAssignees = [...(selectedTask.assignees || []), input];
+                        setSelectedTask({ ...selectedTask, assignees: newAssignees });
+                        (e.target as HTMLInputElement).value = '';
+                        try {
+                          await fetch(`/api/tasks/${selectedTask.id}`, {
+                            method: 'PUT',
+                            headers: {
+                              'Content-Type': 'application/json',
+                              Authorization: `Bearer ${token}`,
+                            },
+                            body: JSON.stringify({ assignees: newAssignees }),
+                          });
+                          setTasks(tasks.map(t => t.id === selectedTask.id ? { ...t, assignees: newAssignees } : t));
+                        } catch (error) {
+                          console.error('Failed to update assignees:', error);
+                        }
+                      }
                     }
                   }}
-                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 text-sm focus:outline-none focus:border-cyan-600"
-                  placeholder="담당자 이름"
                 />
               ) : (
-                <p className="text-slate-300 text-sm">
-                  {selectedTask.assignee || '미지정'}
-                </p>
+                (!selectedTask.assignees || selectedTask.assignees.length === 0) && (
+                  <p className="text-slate-500 text-sm">미지정</p>
+                )
               )}
             </div>
 

@@ -55,7 +55,8 @@ export interface Task {
   updated_at?: string;
   created_by?: string;
   source_message_id?: number;
-  assignee?: string; // 담당자
+  assignee?: string; // 담당자 (deprecated, use assignees)
+  assignees?: string[]; // 다중 담당자 배열 (@ 태그 형식, 향후 구글 인증 user_id 연동)
 }
 
 export interface TaskAttachment {
