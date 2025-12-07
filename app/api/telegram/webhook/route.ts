@@ -14,7 +14,7 @@ let initialized = false;
 // 3. Has media/file attachments
 // 4. [task] keyword creates a new task
 const SAVE_KEYWORDS_PATTERN = /^\[(공유|전달|공지|안내|중요)\]/;
-const TASK_PATTERN = /^\[task\]\s*(.+)/i;
+const TASK_PATTERN = /^\[task\]\s*(.+)/is;
 const URL_PATTERN = /https?:\/\/[^\s]+/;
 
 async function initializeServices() {
@@ -40,12 +40,21 @@ async function initializeServices() {
     const taskMatch = TASK_PATTERN.exec(textToCheck);
 
     // Handle [task] keyword - create task
+    // First line = title, rest = description
     if (taskMatch) {
-      const taskTitle = taskMatch[1].trim();
+      const fullContent = taskMatch[1].trim();
+      const lines = fullContent.split('\n');
+      const taskTitle = lines[0].trim();
+      const taskDescription = lines.slice(1).join('\n').trim() || undefined;
+
       console.log(`Creating task from message: ${taskTitle}`);
+      if (taskDescription) {
+        console.log(`Description: ${taskDescription.substring(0, 50)}...`);
+      }
       try {
         await db.createTask({
           title: taskTitle,
+          description: taskDescription,
           status: 'todo',
           progress: 0,
           source_message_id: msg.messageId,
