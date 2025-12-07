@@ -8,6 +8,13 @@ import { classifyContent } from '@/lib/classifier';
 // Initialize bot
 let initialized = false;
 
+// Save messages matching these conditions:
+// 1. Starting with specific keywords: [공유], [전달], [공지], [안내], [중요]
+// 2. Contains links (URLs)
+// 3. Has media/file attachments
+const SAVE_KEYWORDS_PATTERN = /^\[(공유|전달|공지|안내|중요)\]/;
+const URL_PATTERN = /https?:\/\/[^\s]+/;
+
 async function initializeServices() {
   if (initialized) return;
 
@@ -23,6 +30,19 @@ async function initializeServices() {
       console.log('Skipping empty message');
       return;
     }
+
+    const textToCheck = (msg.text || '').trim();
+    const hasKeyword = SAVE_KEYWORDS_PATTERN.test(textToCheck);
+    const hasLink = URL_PATTERN.test(textToCheck);
+    const hasMedia = !!msg.mediaType;
+
+    // Only save if: has keyword OR has link OR has media
+    if (!hasKeyword && !hasLink && !hasMedia) {
+      console.log('Skipping message - no keyword, link, or media');
+      return;
+    }
+
+    console.log(`Saving message: keyword=${hasKeyword}, link=${hasLink}, media=${hasMedia}`);
 
     // Classify content
     const classification = classifyContent(msg.text || '');

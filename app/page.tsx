@@ -376,6 +376,9 @@ export default function Home() {
               </button>
             ))}
           </div>
+          <p className="text-xs text-slate-500 mt-2">
+            💡 <span className="text-slate-400">[공유]</span>, <span className="text-slate-400">[전달]</span>, <span className="text-slate-400">[공지]</span>, <span className="text-slate-400">[안내]</span>, <span className="text-slate-400">[중요]</span> 키워드 또는 링크/파일이 포함된 메시지만 저장됩니다
+          </p>
         </div>
       </header>
 

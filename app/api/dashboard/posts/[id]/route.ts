@@ -107,7 +107,14 @@ export async function DELETE(
       deletionResults.telegram = true; // No Telegram message to delete
     }
 
-    // 3. Delete from Supabase (always attempt this)
+    // 3. Delete pinned post reference if exists
+    try {
+      await db.unpinPost(postId);
+    } catch {
+      // Ignore error if post was not pinned
+    }
+
+    // 4. Delete from Supabase (always attempt this)
     try {
       await db.deletePost(postId);
       deletionResults.supabase = true;
