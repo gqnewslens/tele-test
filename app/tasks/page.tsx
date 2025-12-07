@@ -40,6 +40,7 @@ export default function TasksPage() {
   // Form states
   const [newTitle, setNewTitle] = useState('');
   const [newDescription, setNewDescription] = useState('');
+  const [newAssignee, setNewAssignee] = useState('');
   const [attachmentName, setAttachmentName] = useState('');
   const [attachmentUrl, setAttachmentUrl] = useState('');
 
@@ -81,12 +82,14 @@ export default function TasksPage() {
         body: JSON.stringify({
           title: newTitle,
           description: newDescription || undefined,
+          assignee: newAssignee || undefined,
         }),
       });
 
       if (res.ok) {
         setNewTitle('');
         setNewDescription('');
+        setNewAssignee('');
         setShowCreateModal(false);
         fetchTasks();
       }
@@ -311,6 +314,16 @@ export default function TasksPage() {
                   onChange={(e) => setNewTitle(e.target.value)}
                   className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-cyan-600"
                   placeholder="태스크 제목"
+                />
+              </div>
+              <div>
+                <label className="block text-sm text-slate-400 mb-1">담당자 (선택)</label>
+                <input
+                  type="text"
+                  value={newAssignee}
+                  onChange={(e) => setNewAssignee(e.target.value)}
+                  className="w-full px-3 py-2 bg-slate-900 border border-slate-700 rounded-lg text-slate-200 focus:outline-none focus:border-cyan-600"
+                  placeholder="담당자 이름"
                 />
               </div>
               <div>
