@@ -269,15 +269,20 @@ export default function TasksPage() {
                 {/* Title */}
                 <span className="flex-1 text-slate-100 font-medium truncate">{task.title}</span>
 
+                {/* Created date */}
+                <span className="text-xs text-slate-500">
+                  {task.created_at && new Date(task.created_at).toLocaleDateString('ko-KR', { month: 'short', day: 'numeric' })}
+                </span>
+
                 {/* Progress */}
-                <div className="flex items-center gap-2 w-36">
+                <div className="flex items-center gap-2 w-32">
                   <div className="flex-1 h-2 bg-slate-700 rounded-full overflow-hidden">
                     <div
                       className="h-full bg-cyan-500 transition-all"
                       style={{ width: `${task.progress}%` }}
                     />
                   </div>
-                  <span className="text-xs text-slate-400 w-10 text-right">{task.progress}%</span>
+                  <span className="text-xs text-slate-400 w-8 text-right">{task.progress}%</span>
                 </div>
               </div>
             </div>
