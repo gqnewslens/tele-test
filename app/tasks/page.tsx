@@ -360,7 +360,7 @@ export default function TasksPage() {
                         method: 'PUT',
                         headers: {
                           'Content-Type': 'application/json',
-                          'x-admin-token': adminToken,
+                          Authorization: `Bearer ${token}`,
                         },
                         body: JSON.stringify({ description: selectedTask.description }),
                       });

@@ -14,7 +14,7 @@ let initialized = false;
 // 3. Has media/file attachments
 // 4. [task] keyword creates a new task
 const SAVE_KEYWORDS_PATTERN = /^\[(공유|전달|공지|안내|중요)\]/;
-const TASK_PATTERN = /^\[task\]\s*(.+)/is;
+const TASK_PATTERN = /^\[task\]\s*([\s\S]+)/i;
 const URL_PATTERN = /https?:\/\/[^\s]+/;
 
 async function initializeServices() {
