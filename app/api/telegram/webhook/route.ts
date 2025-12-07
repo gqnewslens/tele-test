@@ -12,7 +12,9 @@ let initialized = false;
 // 1. Starting with specific keywords: [공유], [전달], [공지], [안내], [중요]
 // 2. Contains links (URLs)
 // 3. Has media/file attachments
+// 4. [task] keyword creates a new task
 const SAVE_KEYWORDS_PATTERN = /^\[(공유|전달|공지|안내|중요)\]/;
+const TASK_PATTERN = /^\[task\]\s*(.+)/i;
 const URL_PATTERN = /https?:\/\/[^\s]+/;
 
 async function initializeServices() {
@@ -35,6 +37,26 @@ async function initializeServices() {
     const hasKeyword = SAVE_KEYWORDS_PATTERN.test(textToCheck);
     const hasLink = URL_PATTERN.test(textToCheck);
     const hasMedia = !!msg.mediaType;
+    const taskMatch = TASK_PATTERN.exec(textToCheck);
+
+    // Handle [task] keyword - create task
+    if (taskMatch) {
+      const taskTitle = taskMatch[1].trim();
+      console.log(`Creating task from message: ${taskTitle}`);
+      try {
+        await db.createTask({
+          title: taskTitle,
+          status: 'todo',
+          progress: 0,
+          source_message_id: msg.messageId,
+          created_by: msg.senderUsername || msg.senderName || 'telegram',
+        });
+        console.log('Task created successfully');
+      } catch (error) {
+        console.error('Failed to create task:', error);
+      }
+      return; // Don't save as regular post
+    }
 
     // Only save if: has keyword OR has link OR has media
     if (!hasKeyword && !hasLink && !hasMedia) {

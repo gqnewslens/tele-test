@@ -43,6 +43,38 @@ export interface PressRelease {
   last_updated?: string;
 }
 
+export type TaskStatus = 'todo' | 'in_progress' | 'review' | 'done';
+
+export interface Task {
+  id?: number;
+  title: string;
+  description?: string;
+  status: TaskStatus;
+  progress: number; // 0, 25, 75, 100
+  created_at?: string;
+  updated_at?: string;
+  created_by?: string;
+  source_message_id?: number;
+}
+
+export interface TaskAttachment {
+  id?: number;
+  task_id: number;
+  name: string;
+  url: string;
+  file_type?: string; // document|image|link
+  uploaded_at?: string;
+  uploaded_by?: string;
+}
+
+// Status to progress mapping
+export const STATUS_PROGRESS_MAP: Record<TaskStatus, number> = {
+  todo: 0,
+  in_progress: 25,
+  review: 75,
+  done: 100,
+};
+
 class SupabaseDB {
   private client: SupabaseClient;
 
@@ -356,6 +388,147 @@ class SupabaseDB {
 
     if (error) {
       throw new Error(`Failed to update pin order: ${error.message}`);
+    }
+  }
+
+  // Task Methods
+
+  async createTask(task: Omit<Task, 'id' | 'created_at' | 'updated_at'>): Promise<Task> {
+    const { data, error } = await this.client
+      .from('tasks')
+      .insert(task)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to create task: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getTasks(filter?: { status?: TaskStatus }): Promise<Task[]> {
+    let query = this.client
+      .from('tasks')
+      .select('*')
+      .order('created_at', { ascending: false });
+
+    if (filter?.status) {
+      query = query.eq('status', filter.status);
+    }
+
+    const { data, error } = await query;
+
+    if (error) {
+      throw new Error(`Failed to fetch tasks: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async getTaskById(id: number): Promise<Task | null> {
+    const { data, error } = await this.client
+      .from('tasks')
+      .select('*')
+      .eq('id', id)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to fetch task: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getTaskBySourceMessageId(messageId: number): Promise<Task | null> {
+    const { data, error } = await this.client
+      .from('tasks')
+      .select('*')
+      .eq('source_message_id', messageId)
+      .single();
+
+    if (error) {
+      if (error.code === 'PGRST116') {
+        return null;
+      }
+      throw new Error(`Failed to fetch task: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async updateTask(id: number, updates: Partial<Omit<Task, 'id' | 'created_at'>>): Promise<Task> {
+    const { data, error } = await this.client
+      .from('tasks')
+      .update(updates)
+      .eq('id', id)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to update task: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async updateTaskStatus(id: number, status: TaskStatus): Promise<Task> {
+    const progress = STATUS_PROGRESS_MAP[status];
+    return this.updateTask(id, { status, progress });
+  }
+
+  async deleteTask(id: number): Promise<void> {
+    const { error } = await this.client
+      .from('tasks')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete task: ${error.message}`);
+    }
+  }
+
+  // Task Attachment Methods
+
+  async addTaskAttachment(attachment: Omit<TaskAttachment, 'id' | 'uploaded_at'>): Promise<TaskAttachment> {
+    const { data, error } = await this.client
+      .from('task_attachments')
+      .insert(attachment)
+      .select()
+      .single();
+
+    if (error) {
+      throw new Error(`Failed to add attachment: ${error.message}`);
+    }
+
+    return data;
+  }
+
+  async getTaskAttachments(taskId: number): Promise<TaskAttachment[]> {
+    const { data, error } = await this.client
+      .from('task_attachments')
+      .select('*')
+      .eq('task_id', taskId)
+      .order('uploaded_at', { ascending: false });
+
+    if (error) {
+      throw new Error(`Failed to fetch attachments: ${error.message}`);
+    }
+
+    return data || [];
+  }
+
+  async deleteTaskAttachment(id: number): Promise<void> {
+    const { error } = await this.client
+      .from('task_attachments')
+      .delete()
+      .eq('id', id);
+
+    if (error) {
+      throw new Error(`Failed to delete attachment: ${error.message}`);
     }
   }
 }
