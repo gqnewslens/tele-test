@@ -36,6 +36,10 @@ export default function Dashboard() {
   const [deleteConfirm, setDeleteConfirm] = useState<number | null>(null);
   const [deleting, setDeleting] = useState<number | null>(null);
 
+  // Sheet export state
+  const [selectedPosts, setSelectedPosts] = useState<Set<number>>(new Set());
+  const [exporting, setExporting] = useState(false);
+
   // Check for existing token on mount
   useEffect(() => {
     const savedToken = localStorage.getItem('adminToken');
@@ -222,6 +226,52 @@ export default function Dashboard() {
     }
   };
 
+  // Sheet export handlers
+  const togglePostSelection = (postId: number) => {
+    const newSelected = new Set(selectedPosts);
+    if (newSelected.has(postId)) {
+      newSelected.delete(postId);
+    } else {
+      newSelected.add(postId);
+    }
+    setSelectedPosts(newSelected);
+  };
+
+  const selectAllPosts = () => {
+    if (selectedPosts.size === filteredPosts.length) {
+      setSelectedPosts(new Set());
+    } else {
+      setSelectedPosts(new Set(filteredPosts.map(p => p.id)));
+    }
+  };
+
+  const exportToSheet = async () => {
+    if (selectedPosts.size === 0) return;
+
+    setExporting(true);
+    try {
+      const postsToExport = filteredPosts.filter(p => selectedPosts.has(p.id));
+      const res = await fetch('/api/sheets/export', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ posts: postsToExport }),
+      });
+
+      const data = await res.json();
+
+      if (data.success) {
+        alert(`✅ ${data.count}개 항목을 시트에 저장했습니다`);
+        setSelectedPosts(new Set());
+      } else {
+        alert(`❌ 저장 실패: ${data.error}`);
+      }
+    } catch (err) {
+      alert('❌ 시트 저장 중 오류가 발생했습니다');
+    } finally {
+      setExporting(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-900 text-white flex items-center justify-center">
@@ -291,17 +341,44 @@ export default function Dashboard() {
           <Calendar />
         </div>
 
-        <div className="mb-4 text-gray-400">
-          {filteredPosts.length}개 항목
+        <div className="mb-4 flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <span className="text-gray-400">{filteredPosts.length}개 항목</span>
+            <button
+              onClick={selectAllPosts}
+              className="text-sm text-blue-400 hover:text-blue-300"
+            >
+              {selectedPosts.size === filteredPosts.length ? '전체 해제' : '전체 선택'}
+            </button>
+          </div>
+          {selectedPosts.size > 0 && (
+            <button
+              onClick={exportToSheet}
+              disabled={exporting}
+              className="px-4 py-2 bg-green-600 hover:bg-green-700 disabled:bg-gray-600 text-white rounded-lg transition-colors flex items-center gap-2"
+            >
+              {exporting ? '저장 중...' : `📊 시트로 보내기 (${selectedPosts.size})`}
+            </button>
+          )}
         </div>
 
         <div className="space-y-4">
           {filteredPosts.map((post, index) => (
             <div
               key={`${post.messageId}-${index}`}
-              className="bg-gray-800 rounded-lg p-4 border border-gray-700 hover:border-gray-600 transition-colors"
+              className={`bg-gray-800 rounded-lg p-4 border transition-colors ${
+                selectedPosts.has(post.id)
+                  ? 'border-green-500 bg-green-900/20'
+                  : 'border-gray-700 hover:border-gray-600'
+              }`}
             >
               <div className="flex items-start gap-3">
+                <input
+                  type="checkbox"
+                  checked={selectedPosts.has(post.id)}
+                  onChange={() => togglePostSelection(post.id)}
+                  className="mt-1 w-5 h-5 rounded border-gray-600 bg-gray-700 text-green-500 focus:ring-green-500 focus:ring-offset-gray-800 cursor-pointer"
+                />
                 <span className="text-2xl">{getTypeIcon(post)}</span>
 
                 <div className="flex-1 min-w-0">
